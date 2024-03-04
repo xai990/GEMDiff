@@ -4,6 +4,28 @@ from tqdm import tqdm
 import torch.nn.functional as F
 from . import logger 
 from .nn import mean_flat
+import math 
+
+
+def betas_for_alpha_bar(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
+    """
+    Create a beta schedule that discretizes the given alpha_t_bar function,
+    which defines the cumulative product of (1-beta) over time from t = [0,1].
+
+    :param num_diffusion_timesteps: the number of betas to produce.
+    :param alpha_bar: a lambda that takes an argument t from 0 to 1 and
+                      produces the cumulative product of (1-beta) up to that
+                      part of the diffusion process.
+    :param max_beta: the maximum beta to use; use values lower than 1 to
+                     prevent singularities.
+    """
+    betas = []
+    for i in range(num_diffusion_timesteps):
+        t1 = i / num_diffusion_timesteps
+        t2 = (i + 1) / num_diffusion_timesteps
+        betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+    return np.array(betas)
+
 
 def get_named_beta_schedule(
     schedule_name, 
@@ -24,15 +46,10 @@ def get_named_beta_schedule(
             np.linspace(linear_start ** 0.5, linear_end ** 0.5, num_diffusion_timesteps, dtype=np.float64) ** 2
         )
     elif schedule_name == "cosine":
-        timesteps = (
-            np.arrange(n_timestep+1, dtype=np.float64)/ n_timestep + cosine_s
+        return betas_for_alpha_bar(
+            num_diffusion_timesteps,
+            lambda t: math.cos((t + 0.008) / 1.008 * math.pi / 2) ** 2,
         )
-        alphas = timesteps / ( 1 + cosine_s) * np.pi / 2
-        alphas = np.cos(alphas).pow(2)
-        alphas = alphas / alphas[0]
-        betas = 1 - alphas[1:] / alphas[:-1]
-        betas = np.clip(betas , a_min=0,a_max=0.999)
-
     elif schedule_name == "sigmoid":
         betas = th.linspace(linear_start, linear_end,num_diffusion_timesteps)
         betas = th.sigmoid(betas)*(0.5e-2 - 1e-5)+1e-5
@@ -43,7 +60,24 @@ def get_named_beta_schedule(
     return betas
 
 
+def betas_for_alpha_bar(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
+    """
+    Create a beta schedule that discretizes the given alpha_t_bar function,
+    which defines the cumulative product of (1-beta) over time from t = [0,1].
 
+    :param num_diffusion_timesteps: the number of betas to produce.
+    :param alpha_bar: a lambda that takes an argument t from 0 to 1 and
+                      produces the cumulative product of (1-beta) up to that
+                      part of the diffusion process.
+    :param max_beta: the maximum beta to use; use values lower than 1 to
+                     prevent singularities.
+    """
+    betas = []
+    for i in range(num_diffusion_timesteps):
+        t1 = i / num_diffusion_timesteps
+        t2 = (i + 1) / num_diffusion_timesteps
+        betas.append(min(1 - alpha_bar(t2) / alpha_bar(t1), max_beta))
+    return np.array(betas)
 
 
 class DenoiseDiffusion():
@@ -59,7 +93,6 @@ class DenoiseDiffusion():
         betas,
         parameterization="eps",
         log_every_t,
-        l_simple_weight=1.,
     ):
         super().__init__()
         self.parameterization=parameterization
@@ -89,7 +122,7 @@ class DenoiseDiffusion():
         )
         self.posterior_log_variance_clipped = np.log(np.maximum(self.posterior_variance, 1e-20))
         self.log_every_t = log_every_t
-        self.l_simple_weight = l_simple_weight
+
 
     def q_mean_variance(self,x_start,t):
         """
@@ -122,7 +155,6 @@ class DenoiseDiffusion():
             noise = th.randn_like(x_start)
 
         assert noise.shape == x_start.shape
-        # logger.debug(f"x_start is on {x_start.device}, t is on {t.device} -- gaussian")
         mean, var = self.q_mean_variance(x_start,t)
         return mean + var * noise 
 
@@ -177,12 +209,13 @@ class DenoiseDiffusion():
         B  = x.shape[0]
         assert t.shape == (B,)
         model_output = model(x,t,**model_kwargs)
-    
+        
         if self.parameterization == "eps":
             x_recon = self._predict_start_from_noise(x, t=t,noise=model_output)
         if clip_denoised:
-            x_recon.clamp(-1. , 1.)
+            x_recon.clamp_(-1. , 1.)
         model_mean, posterior_variance,posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x, t=t)
+        
         return {
             "model_mean": model_mean,
             "posterior_variance": posterior_variance,
@@ -227,7 +260,7 @@ class DenoiseDiffusion():
         ):
             t = th.tensor([i] * shape[0], device = device)
             out = self.p_sample(model, seq, t, model_kwargs=model_kwargs)
-            if i % self.log_every_t == 0 or i ==self.num_timesteps - 1:
+            if i % self.log_every_t == 0:                
                 intermediates.append(out["sample"])
             seq = out["sample"]
         final = out["sample"]
@@ -250,20 +283,15 @@ class DenoiseDiffusion():
         terms = {}
         noise = th.randn_like(x_start, device = x_start.device)
         x_t = self.q_sample(x_start = x_start, t=t,noise=noise)
-        # logger.debug(f"The size of x_t is {x_t.size()} -- gaussian")
-        # logger.debug(f"The size of t is {t.size()} -- gaussian")
         model_out = model(x_t, t, **model_kwargs)
 
         if self.parameterization == "eps":
             target = noise 
         else:
             raise NotImplementedError(f"ParameteriZation {self.parameterization} not yet supported")
-        # logger.debug(f"The model_out is {model_out} -- gaussian")
-        # logger.debug(f"The target is {target} -- gaussian")
+        
         # the take the mean on each dimension [N x C x F], dim = [1,2]
-        loss = mean_flat(self.get_loss(model_out, target))
-        loss_simple  = loss.mean() * self.l_simple_weight
-        loss_vlb = (self.lvlb_weights[t] * loss).mean()
+        terms["loss"] = mean_flat(self.get_loss(model_out, target))
         return terms
     
 
@@ -277,8 +305,6 @@ def _extract_into_tensor(arr, timesteps, broadcast_shape):
                             dimension equal to the length of timesteps.
     :return: a tensor of shape [batch_size, 1, ...] where the shape has K dims.
     """
-    # logger.debug(f"The timesteps is: {timesteps} -- gaussian diffusion")
-    # logger.debug(f"The size of the arr is: {arr.shape} -- gaussian diffusion")
     res = th.from_numpy(arr).to(device=timesteps.device)[timesteps].float()
     while len(res.shape) < len(broadcast_shape):
         res = res[...,None]
