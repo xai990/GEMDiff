@@ -19,10 +19,10 @@ def model_and_diffusion_defaults():
     return {
         "model":{
             "feature_size": 2,
-            "gene_block": 128,
+            "patch_size": 2,
             "dropout": 0.0,
             "class_cond": False,
-            "n_embd": 128,
+            "n_embd": 768,
             "n_head": 4,
             "n_layer": 4,
         },
@@ -50,7 +50,7 @@ def create_model_and_diffusion(
     linear_end,
     log_every_t,
     n_layer,
-    gene_block,
+    patch_size,
     **kwargs,
 ):
     model = create_model(
@@ -60,7 +60,7 @@ def create_model_and_diffusion(
         dropout = dropout,
         class_cond = class_cond,
         n_layer = n_layer,
-        gene_block = gene_block,
+        patch_size = patch_size,
     )
     diffusion = create_diffusion(
         steps= diffusion_steps,
@@ -77,9 +77,9 @@ def create_model(
         feature_size,
         n_embd,
         class_cond,
-        gene_block,
+        patch_size,
+        n_head,
         n_layer = 4,
-        n_head = 8,
         dropout = 0.0,
         
     ):
@@ -90,7 +90,7 @@ def create_model(
         n_head=n_head,
         dropout=dropout,
         n_layer = n_layer,
-        gene_block =gene_block,
+        patch_size =patch_size,
         num_classes=(NUM_CLASSES if class_cond else None),
     )
 
@@ -135,174 +135,102 @@ def showdata(dataset,
     # dir to save the plot image
     assert isinstance(dir,str)
     os.makedirs(dir,exist_ok=True)
+    reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2)
     colors = ['blue','orange']
     if schedule_plot == "forward": 
         assert diffusion is not None
         rows = num_shows // cols
         fig,axs = plt.subplots(rows,cols,figsize=(28,3))
         plt.rc('text',color='black')
-        data , y = dataset[:][0], dataset[:][1]['y']
-        data = th.from_numpy(data).float()
-
-        for label in np.unique(y):
-            data_p = data[label == y]
+        if exampledata == True:
+            data = dataset[:]
+            for i in range(num_shows):
+                j = i//10
+                k = i%10
+                t = th.full((data.shape[0],),i*num_steps//num_shows)
+                # logger.debug(f"The t is: {t} -- script_util")
+                q_i = diffusion.q_sample(data, t)
+                axs[j,k].scatter(q_i[:,0].cpu(),q_i[:,1].cpu(),color='red',edgecolor='white')
+                axs[j,k].set_axis_off()
+                axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
+        else:
+            data , y = dataset[:][0], dataset[:][1]['y']
+            data = th.from_numpy(data).float()
             for i in range(num_shows):
                 j = i // cols
                 k = i % cols
-                t = th.full((data_p.shape[0],),i*num_steps//num_shows)
-                q_i = diffusion.q_sample(data_p,t)
-                axs[j,k].scatter(q_i[:,:,0].cpu(),q_i[:,:,1].cpu(),label = label,color=colors[label],edgecolor='white',)
+                t = th.full((data.shape[0],),i*num_steps//num_shows)
+                x_i = diffusion.q_sample(data,t)
+                q_i = reducer.fit_transform(x_i)
+                for ele in y:
+                    index_mask = (ele==y)
+                    if np.any(index_mask):
+                        axs[j,k].scatter(q_i[index_mask,0],
+                                    q_i[index_mask,1],
+                                    label = ele, 
+                                    color=colors[ele],
+                                    edgecolor='white')
                 axs[j,k].set_axis_off()
                 axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
         plt.savefig(f"{dir}/dataset-forward.png")
         plt.close()
     elif schedule_plot == "origin":
         fig,ax = plt.subplots()      
-        data , y = dataset[:][0], dataset[:][1]['y']
-        q_i = data
-        for ele in y:
-            index_mask = (ele==y)
-            if np.any(index_mask):
-                ax.scatter(q_i[index_mask,:,0],
-                            q_i[index_mask,:,1],
-                            label = ele, 
-                            color=colors[ele],
-                            edgecolor='white')
+        if exampledata == True:
+            data = dataset[:].T.cpu()
+            ax.scatter(*data, color = 'blue', edgecolor = 'white')
+        else:
+            data , y = dataset[:][0], dataset[:][1]['y']
+            q_i = reducer.fit_transform(data)
+            for ele in y:
+                index_mask = (ele==y)
+                if np.any(index_mask):
+                    ax.scatter(q_i[index_mask,0],
+                                q_i[index_mask,1],
+                                label = ele, 
+                                color=colors[ele],
+                                edgecolor='white')
         # ax.scatter(q_i[:,0], q_i[:,1],color='red',edgecolor='white')
         ax.axis('off')
         plt.savefig(f"{dir}/dataset.png")
         plt.close()
     elif schedule_plot == "reverse":
-        data , y = dataset[:][0], dataset[:][1]['y']
-        data = th.from_numpy(data).float()
-        fig,axs = plt.subplots(1,10,figsize=(28,3))
-        
-        for label in np.unique(y):
-            data_pi = data[label == y]
+        if exampledata == True:
+            fig,axs = plt.subplots(1,10,figsize=(28,3))
             for i in range(1,11):
-                pi = data_pi[i*10].detach().cpu()
-                
-                axs[i-1].scatter(pi[:,:,0],pi[:,:,1],label = label,color=colors[label],edgecolor='white',)
+                cur_x = dataset[i*10].detach().cpu()
+                axs[i-1].scatter(cur_x[:,0],cur_x[:,1],color='red',edgecolor='white');
                 axs[i-1].set_axis_off();
                 axs[i-1].set_title('$q(\mathbf{x}_{'+str(i*10)+'})$')
+        else:
+            if final_data:
+                fig,ax = plt.subplots()
+                data = dataset['arr_0'].reshape(400,-1)
+                mins, maxs = scaler[0], scaler[1] 
+                data = (data+ mins) * (maxs - mins)
+                y = dataset['arr_1']
+                q_i = reducer.fit_transform(data)
+                for ele in y:
+                    index_mask = (ele==y)
+                    if np.any(index_mask):
+                        ax.scatter(q_i[index_mask,0],
+                                    q_i[index_mask,1],
+                                    label = ele, 
+                                    color=colors[ele],
+                                    edgecolor='white')
+                ax.axis('off')
+            else:
+                fig,axs = plt.subplots(1,10,figsize=(28,3))
+                B, *feature = dataset.shape
+                dataset = dataset.reshape(B, -1)
+                reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2)
+                for i in range(1,11):
+                    pi_x = dataset[i*10].detach().cpu()
+                    pi = reducer.fit_transform(pi_x)
+                    axs[i-1].scatter(pi[:,0],pi[:,1],color='orange',edgecolor='white');
+                    axs[i-1].set_axis_off();
+                    axs[i-1].set_title('$q(\mathbf{x}_{'+str(i*10)+'})$')
         plt.savefig(f"{dir}/dataset-reversed.png")
         plt.close()
     else:
         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
-
-
-
-# def showdata(dataset, 
-#             dir="results", 
-#             schedule_plot = "forward", 
-#             diffusion=None,
-#             num_steps=1000,
-#             num_shows=20,
-#             cols = 10,
-#             # epoch = 1,
-#             exampledata = False,
-#             final_data = False,
-#             scaler = None,
-#     ):
-#     # dir to save the plot image
-#     assert isinstance(dir,str)
-#     os.makedirs(dir,exist_ok=True)
-#     reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2)
-#     colors = ['blue','orange']
-#     if schedule_plot == "forward": 
-#         assert diffusion is not None
-#         rows = num_shows // cols
-#         fig,axs = plt.subplots(rows,cols,figsize=(28,3))
-#         plt.rc('text',color='black')
-#         if exampledata == True:
-#             data = dataset[:]
-#             for i in range(num_shows):
-#                 j = i//10
-#                 k = i%10
-#                 t = th.full((data.shape[0],),i*num_steps//num_shows)
-#                 # logger.debug(f"The t is: {t} -- script_util")
-#                 q_i = diffusion.q_sample(data, t)
-#                 axs[j,k].scatter(q_i[:,0].cpu(),q_i[:,1].cpu(),color='red',edgecolor='white')
-#                 axs[j,k].set_axis_off()
-#                 axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
-#         else:
-#             data , y = dataset[:][0], dataset[:][1]['y']
-#             data = th.from_numpy(data).float()
-#             for i in range(num_shows):
-#                 j = i // cols
-#                 k = i % cols
-#                 t = th.full((data.shape[0],),i*num_steps//num_shows)
-#                 x_i = diffusion.q_sample(data,t)
-#                 q_i = reducer.fit_transform(x_i)
-#                 for ele in y:
-#                     index_mask = (ele==y)
-#                     if np.any(index_mask):
-#                         axs[j,k].scatter(q_i[index_mask,0],
-#                                     q_i[index_mask,1],
-#                                     label = ele, 
-#                                     color=colors[ele],
-#                                     edgecolor='white')
-#                 axs[j,k].set_axis_off()
-#                 axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
-#         plt.savefig(f"{dir}/dataset-forward.png")
-#         plt.close()
-#     elif schedule_plot == "origin":
-#         fig,ax = plt.subplots()      
-#         if exampledata == True:
-#             data = dataset[:].T.cpu()
-#             ax.scatter(*data, color = 'blue', edgecolor = 'white')
-#         else:
-#             data , y = dataset[:][0], dataset[:][1]['y']
-#             q_i = reducer.fit_transform(data)
-#             for ele in y:
-#                 index_mask = (ele==y)
-#                 if np.any(index_mask):
-#                     ax.scatter(q_i[index_mask,0],
-#                                 q_i[index_mask,1],
-#                                 label = ele, 
-#                                 color=colors[ele],
-#                                 edgecolor='white')
-#         # ax.scatter(q_i[:,0], q_i[:,1],color='red',edgecolor='white')
-#         ax.axis('off')
-#         plt.savefig(f"{dir}/dataset.png")
-#         plt.close()
-#     elif schedule_plot == "reverse":
-#         if exampledata == True:
-#             fig,axs = plt.subplots(1,10,figsize=(28,3))
-#             for i in range(1,11):
-#                 cur_x = dataset[i*10].detach().cpu()
-#                 axs[i-1].scatter(cur_x[:,0],cur_x[:,1],color='red',edgecolor='white');
-#                 axs[i-1].set_axis_off();
-#                 axs[i-1].set_title('$q(\mathbf{x}_{'+str(i*10)+'})$')
-#         else:
-#             if final_data:
-#                 fig,ax = plt.subplots()
-#                 data = dataset['arr_0'].reshape(400,-1)
-#                 mins, maxs = scaler[0], scaler[1] 
-#                 data = (data+ mins) * (maxs - mins)
-#                 y = dataset['arr_1']
-#                 q_i = reducer.fit_transform(data)
-#                 for ele in y:
-#                     index_mask = (ele==y)
-#                     if np.any(index_mask):
-#                         ax.scatter(q_i[index_mask,0],
-#                                     q_i[index_mask,1],
-#                                     label = ele, 
-#                                     color=colors[ele],
-#                                     edgecolor='white')
-#                 ax.axis('off')
-#             else:
-#                 fig,axs = plt.subplots(1,10,figsize=(28,3))
-#                 B, *feature = dataset.shape
-#                 dataset = dataset.reshape(B, -1)
-#                 reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2)
-#                 for i in range(1,11):
-#                     pi_x = dataset[i*10].detach().cpu()
-#                     pi = reducer.fit_transform(pi_x)
-#                     axs[i-1].scatter(pi[:,0],pi[:,1],color='orange',edgecolor='white');
-#                     axs[i-1].set_axis_off();
-#                     axs[i-1].set_title('$q(\mathbf{x}_{'+str(i*10)+'})$')
-#         plt.savefig(f"{dir}/dataset-reversed.png")
-#         plt.close()
-#     else:
-#         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
