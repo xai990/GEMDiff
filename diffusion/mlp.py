@@ -135,9 +135,10 @@ class SPT(nn.Module):
         super().__init__()
         patch_dim = patch_size
         self.to_patch_tokens = nn.Sequential(
+            Rearrange('b (l p) -> b l p', p = patch_size),
             nn.LayerNorm(patch_dim),
             nn.Linear(patch_dim, dim),
-            Rearrange('b (l p) -> b l p', p = patch_size),
+            
         )
     
     def forward(self,x):
