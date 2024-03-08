@@ -29,7 +29,7 @@ log:
 * change layernorm elementwise_affine True -> False 
 * MLP GELU approximate none -> tanh
 * unpatch sequence rearange 
-
+* double layernorm -> single layernorm 
 still has a double layernorm 
 """
 
@@ -192,7 +192,7 @@ class GPT(nn.Module):
             wte = nn.Linear(gene_feature, n_embd),
             drop = nn.Dropout(dropout),
             h = nn.ModuleList([Block(n_embd,n_head,dropout) for _ in range(n_layer)]),
-            ln_f = nn.LayerNorm(n_embd),
+            # ln_f = nn.LayerNorm(n_embd),
         ))
         self.patch_size = patch_size
         num_patches = (gene_feature // patch_size)
@@ -287,7 +287,7 @@ class GPT(nn.Module):
         for block in self.transformer.h:
             # logger.debug(f"The block is: {block} -- unet")
             x = block(x)
-        x = self.transformer.ln_f(x)
+        # x = self.transformer.ln_f(x)
         # logger.debug(f"The size of x is: {x.size()} -- unet")
         # if targets is not None:
         #     # if we are given some desired targets also calculate the loss
