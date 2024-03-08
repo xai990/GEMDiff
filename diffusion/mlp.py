@@ -1,10 +1,4 @@
-"""
-References:
-1) nanoGPT
-https://github.com/karpathy/nanoGPT
-2) vit-pytorch
-https://github.com/lucidrains/vit-pytorch/
-"""
+
 import math
 import inspect
 from dataclasses import dataclass
@@ -17,24 +11,28 @@ from . import logger
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
 
-
 """
 2024/03/01
 log:
 
-add the position embedding 
+* add the position embedding 
+
+2024/03/05
+log:
+* set `is_causal=False `
+
+log:
+* add assert function to make sure the gene feature can be divided by patch size
+
+2024/03/08
+log:
+* change layernorm elementwise_affine True -> False 
+* MLP GELU approximate none -> tanh
+* unpatch sequence rearange 
+
+still has a double layernorm 
 """
 
-class LayerNorm(nn.Module):
-    """ LayerNorm but with an optional bias. PyTorch doesn't support simply bias=False """
-
-    def __init__(self, ndim, bias=True):
-        super().__init__()
-        self.weight = nn.Parameter(torch.ones(ndim))
-        self.bias = nn.Parameter(torch.zeros(ndim)) if bias else None
-
-    def forward(self, input):
-        return F.layer_norm(input, self.weight.shape, self.weight, self.bias, 1e-5)
 
 class CausalSelfAttention(nn.Module):
 
@@ -72,11 +70,13 @@ class CausalSelfAttention(nn.Module):
         k = k.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         q = q.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
         v = v.view(B, T, self.n_head, C // self.n_head).transpose(1, 2) # (B, nh, T, hs)
-
+        # logger.debug(f"The size of q is: {q} -- mlp")
+        # logger.debug(f"The size of k is: {k} -- mlp")
+        # logger.debug(f"The size of v is: {v} -- mlp")
         # causal self-attention; Self-attend: (B, nh, T, hs) x (B, nh, hs, T) -> (B, nh, T, T)
         if self.flash:
             # efficient attention using Flash Attention CUDA kernels
-            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=True)
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v, attn_mask=None, dropout_p=self.dropout if self.training else 0, is_causal=False)
         else:
             # manual implementation of attention
             att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
@@ -99,7 +99,7 @@ class MLP(nn.Module):
     ):
         super().__init__()
         self.c_fc    = nn.Linear(n_embd, 4 * n_embd)
-        self.gelu    = nn.GELU()
+        self.gelu    = nn.GELU(approximate="tanh")
         self.c_proj  = nn.Linear(4 * n_embd, n_embd)
         self.dropout = nn.Dropout(dropout)
 
@@ -119,9 +119,9 @@ class Block(nn.Module):
         dropout,
     ):
         super().__init__()
-        self.ln_1 = nn.LayerNorm(n_embd)
+        self.ln_1 = nn.LayerNorm(n_embd, elementwise_affine=False, eps=1e-6)
         self.attn = CausalSelfAttention(n_embd,n_head,dropout)
-        self.ln_2 = nn.LayerNorm(n_embd)
+        self.ln_2 = nn.LayerNorm(n_embd, elementwise_affine=False, eps=1e-6)
         self.mlp = MLP(n_embd, dropout)
 
     def forward(self, x):
@@ -135,9 +135,9 @@ class SPT(nn.Module):
         super().__init__()
         patch_dim = patch_size
         self.to_patch_tokens = nn.Sequential(
-            Rearrange('b (l p) -> b l p', p = patch_size),
             nn.LayerNorm(patch_dim),
-            nn.Linear(patch_dim, dim)
+            nn.Linear(patch_dim, dim),
+            Rearrange('b (l p) -> b l p', p = patch_size),
         )
     
     def forward(self,x):
@@ -149,7 +149,7 @@ class RSPT(nn.Module):
         super().__init__()
         patch_dim = patch_size  
         self.back_patch_tokens = nn.Sequential(
-            nn.LayerNorm(n_embd),
+            nn.LayerNorm(n_embd, elementwise_affine=False, eps=1e-6),
             nn.Linear(n_embd, patch_dim),
             Rearrange('b l p -> b (p l)', p = patch_size),
         )
@@ -165,12 +165,18 @@ class GPT(nn.Module):
         patch_size,
         n_head,
         dropout,
+        # t_embd,
+        # gene_block = 128,
         n_embd=768,
         n_layer=4,
         num_classes = None,
     ):
         super().__init__()
+        # assert config.vocab_size is not None
+        # assert config.block_size is not None
+        # self.config = config
         self.t_embd = n_embd
+        # self.gene_block = gene_block
         self.gene_feature = gene_feature
         self.time_embed = nn.Sequential(
             nn.Linear(n_embd, self.t_embd*4),
@@ -180,17 +186,28 @@ class GPT(nn.Module):
         self.num_classes = num_classes
         if self.num_classes is not None:
             self.label_emb = nn.Embedding(num_classes, self.t_embd)
+        # self.gte = nn.Linear(1000,n_embd)
         self.transformer = nn.ModuleDict(dict(
             wte = nn.Linear(gene_feature, n_embd),
             drop = nn.Dropout(dropout),
             h = nn.ModuleList([Block(n_embd,n_head,dropout) for _ in range(n_layer)]),
             ln_f = nn.LayerNorm(n_embd),
         ))
+        self.patch_size = patch_size
         num_patches = (gene_feature // patch_size)
         self.num_patches = num_patches
         self.to_patch_embedding = SPT(dim = n_embd, patch_size = patch_size)
-        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, n_embd))
+        # self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, n_embd))
         self.back_patch_embedding = RSPT(n_embd = n_embd, patch_size = patch_size)
+        # self.transformer = nn.ModuleDict(dict(
+        #     wte = nn.Embedding(config.vocab_size, config.n_embd),
+        #     wpe = nn.Embedding(config.block_size, config.n_embd),
+        #     drop = nn.Dropout(config.dropout),
+        #     h = nn.ModuleList([Block(config) for _ in range(config.n_layer)]),
+        #     ln_f = nn.LayerNorm(config.n_embd),
+        # ))
+        
+        # self.lm_head = nn.Linear(n_embd, gene_feature, bias=False)
         self.lm_head = nn.Identity()
         # with weight tying when using torch.compile() some warnings get generated:
         # "UserWarning: functional_call was passed multiple values for tied weights.
@@ -216,6 +233,8 @@ class GPT(nn.Module):
         params are actually used as weights in the final layer, so we include them.
         """
         n_params = sum(p.numel() for p in self.parameters())
+        # if non_embedding:
+        #     n_params -= self.transformer.wpe.weight.numel()
         return n_params
 
     def _init_weights(self, module):
@@ -236,15 +255,47 @@ class GPT(nn.Module):
             assert y.shape == (x.shape[0],)
             emb = emb + self.label_emb(y)
         
+        # b, *features = x.size()
+        # logger.debug(f"The size of x is:{x.size()} --mlp")
+        assert (x.shape[-1] % self.patch_size == 0), " gene feature must be an integer multiple of patch size"
         x = self.to_patch_embedding(x)
         _,n,_ = x.shape
-        x += self.pos_embedding
-        # add the time 
-        x = self.transformer.drop(x + emb.unsqueeze(1).expand(-1, self.num_patches, -1))
+        # logger.debug(f"The size of number patch is: {self.num_patches} --mlp")
+        # logger.debug(f"The number of patch is is:{self.num_patches} -- mlp")
+        # logger.debug(f"The embed shape is:{emb.size()} -- mlp")
         
+        # x += self.pos_embedding
+        # x = self.dropout(x)
+        # h = x.view(b, self.gene_block, -1)
+        
+        # assert t <= self.block_size, f"Cannot forward sequence of length {t}, block size is only {self.config.block_size}"
+        # pos = torch.arange(0, t, dtype=torch.long, device=device) # shape (t)
+        # logger.debug(f"The h size is:{h.size()} -- mlp")
+        # logger.debug(f"The gene block size is:{self.gene_block} -- unet")
+        # logger.debug(f"The gene feature is:{self.gene_feature} -- unet")
+        # logger.debug(f"The t embedding is:{self.t_embd} -- unet")
+        # forward the GPT model itself
+        # tok_emb = self.transformer.wte(h)
+        # tok_emb = self.gte(h) # token embeddings of shape (b, t, n_embd)
+        # pos_emb = self.transformer.wpe(pos) # position embeddings of shape (t, n_embd)
+        # x = self.transformer.drop(tok_emb + pos_emb)
+        # add the time 
+    
+        x = self.transformer.drop(x + emb.unsqueeze(1).expand(-1, self.num_patches, -1))
+        # logger.debug(f"The x shape is:{x.size()} -- mlp")
         for block in self.transformer.h:
+            # logger.debug(f"The block is: {block} -- unet")
             x = block(x)
         x = self.transformer.ln_f(x)
+        # logger.debug(f"The size of x is: {x.size()} -- unet")
+        # if targets is not None:
+        #     # if we are given some desired targets also calculate the loss
+        #     logits = self.lm_head(x)
+        #     # loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1), ignore_index=-1)
+        # else:
+            # inference-time mini-optimization: only forward the lm_head on the very last position
         x = self.back_patch_embedding(x)
         out = self.lm_head(x) # note: using list [-1] to preserve the time dim
+            # loss = None
+        # logger.debug(f"The size of logits:{logits.size()} -- unet")
         return out
