@@ -34,6 +34,25 @@ still has a double layernorm
 """
 
 
+
+"""
+2024/03/12
+
+log:
+* change back to original code 
+* 1st add LN in SPT ( LN does not work)
+* 2nd MLP GELU approximate none -> tanh
+* 3rd pos embd 
+2 + 3 works 
+
+
+2024/03/22
+log:
+* MLP GELU approximate none -> tanh does not perform well 
+* change it back to none 
+"""
+
+
 class CausalSelfAttention(nn.Module):
 
     def __init__(self,
@@ -99,7 +118,8 @@ class MLP(nn.Module):
     ):
         super().__init__()
         self.c_fc    = nn.Linear(n_embd, 4 * n_embd)
-        self.gelu    = nn.GELU(approximate="tanh")
+        # self.gelu    = nn.GELU(approximate="tanh") # change 2nd
+        self.gelu    = nn.GELU() 
         self.c_proj  = nn.Linear(4 * n_embd, n_embd)
         self.dropout = nn.Dropout(dropout)
 
@@ -136,7 +156,7 @@ class SPT(nn.Module):
         patch_dim = patch_size
         self.to_patch_tokens = nn.Sequential(
             Rearrange('b (l p) -> b l p', p = patch_size),
-            nn.LayerNorm(patch_dim),
+            # nn.LayerNorm(patch_dim), # 3.12 change 1 
             nn.Linear(patch_dim, dim),
             
         )
@@ -150,9 +170,11 @@ class RSPT(nn.Module):
         super().__init__()
         patch_dim = patch_size  
         self.back_patch_tokens = nn.Sequential(
-            nn.LayerNorm(n_embd, elementwise_affine=False, eps=1e-6),
+            # nn.LayerNorm(n_embd, elementwise_affine=False, eps=1e-6),
             nn.Linear(n_embd, patch_dim),
             Rearrange('b l p -> b (p l)', p = patch_size),
+           
+            
         )
     
     def forward(self,x):
@@ -192,13 +214,13 @@ class GPT(nn.Module):
             wte = nn.Linear(gene_feature, n_embd),
             drop = nn.Dropout(dropout),
             h = nn.ModuleList([Block(n_embd,n_head,dropout) for _ in range(n_layer)]),
-            # ln_f = nn.LayerNorm(n_embd),
+            ln_f = nn.LayerNorm(n_embd),
         ))
         self.patch_size = patch_size
         num_patches = (gene_feature // patch_size)
         self.num_patches = num_patches
         self.to_patch_embedding = SPT(dim = n_embd, patch_size = patch_size)
-        # self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, n_embd))
+        self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, n_embd)) # change 3rd pos 
         self.back_patch_embedding = RSPT(n_embd = n_embd, patch_size = patch_size)
         # self.transformer = nn.ModuleDict(dict(
         #     wte = nn.Embedding(config.vocab_size, config.n_embd),
@@ -265,7 +287,7 @@ class GPT(nn.Module):
         # logger.debug(f"The number of patch is is:{self.num_patches} -- mlp")
         # logger.debug(f"The embed shape is:{emb.size()} -- mlp")
         
-        # x += self.pos_embedding
+        x += self.pos_embedding # change 3rd pos 
         # x = self.dropout(x)
         # h = x.view(b, self.gene_block, -1)
         
@@ -287,7 +309,7 @@ class GPT(nn.Module):
         for block in self.transformer.h:
             # logger.debug(f"The block is: {block} -- unet")
             x = block(x)
-        # x = self.transformer.ln_f(x)
+        x = self.transformer.ln_f(x)
         # logger.debug(f"The size of x is: {x.size()} -- unet")
         # if targets is not None:
         #     # if we are given some desired targets also calculate the loss
