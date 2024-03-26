@@ -17,6 +17,7 @@ def load_data(
     data_filter="replace",
     gene_selection=None,
     dge = False,
+    gene_set = None,
 ):
     """ 
     For a dataset, create a generate over (seq, kwars) pairs
@@ -48,35 +49,49 @@ def load_data(
     all_files = _list_files_recursively(data_dir)
     # set the condition later
     # logger.debug(f"The information of {gene_selection} -- datasets")
+    dataset = CustomGeneDataset(all_files[0],
+                                all_files[1],
+                                gene_set = (all_files[2] if gene_set else None),
+                                transform= GeneDataTransform(),
+                                target_transform=GeneLabelTransform(),
+                                scaler=True,
+                                filter=data_filter,
+                                random_selection=(GeneRandom(seed=SEED,features=gene_selection) if gene_selection else None),
+                                dge = (Genedifferential() if dge else None), 
+                                class_cond =class_cond,
+    )
     
-    if gene_selection is not None:
-        dataset = CustomGeneDataset(all_files[0],
-                                    all_files[1],
-                                    transform= GeneDataTransform(),
-                                    target_transform=GeneLabelTransform(),
-                                    scaler=True,
-                                    filter=data_filter,
-                                    random_selection=GeneRandom(seed=SEED,features=gene_selection),
-        )
-    elif dge:
-        dataset = CustomGeneDataset(all_files[0],
-                                    all_files[1],
-                                    transform= GeneDataTransform(),
-                                    target_transform=GeneLabelTransform(),
-                                    scaler=True,
-                                    filter=data_filter,
-                                    dge=Genedifferential(),
-                                    class_cond =class_cond,
-        )
     
-    else:
-        dataset = CustomGeneDataset(all_files[0],
-                                    all_files[1],
-                                    transform= GeneDataTransform(),
-                                    target_transform=GeneLabelTransform(),
-                                    scaler=True,
-                                    filter=data_filter,
-        )
+    
+    # if gene_set 
+    # if gene_selection is not None:
+    #     dataset = CustomGeneDataset(all_files[0],
+    #                                 all_files[1],
+    #                                 transform= GeneDataTransform(),
+    #                                 target_transform=GeneLabelTransform(),
+    #                                 scaler=True,
+    #                                 filter=data_filter,
+    #                                 random_selection=GeneRandom(seed=SEED,features=gene_selection),
+    #     )
+    # elif dge:
+    #     dataset = CustomGeneDataset(all_files[0],
+    #                                 all_files[1],
+    #                                 transform= GeneDataTransform(),
+    #                                 target_transform=GeneLabelTransform(),
+    #                                 scaler=True,
+    #                                 filter=data_filter,
+    #                                 dge=Genedifferential(),
+    #                                 class_cond =class_cond,
+    #     )
+    
+    # else:
+    #     dataset = CustomGeneDataset(all_files[0],
+    #                                 all_files[1],
+    #                                 transform= GeneDataTransform(),
+    #                                 target_transform=GeneLabelTransform(),
+    #                                 scaler=True,
+    #                                 filter=data_filter,
+    #     )
     # logger.log(f"After data pre-processing, the dataset contains {dataset[0]}")
     logger.log(f"After data pre-processing, the dataset contains {dataset[:][0].shape[-1]} gene.")
     #logger.log("The gene selection is fixed random. Have not set a bool value for examine whether fixed random or true random")
@@ -101,10 +116,12 @@ def data_loader(dataset, batch_size=32,deterministic=False):
 
 def _list_files_recursively(data_dir):
     results = []
-    for entry in sorted(bf.listdir(data_dir)):
+    for entry in sorted(bf.listdir(data_dir), key=lambda x: (x[0].isupper(), x)):
         full_path = bf.join(data_dir, entry)
         ext = entry.split(".")[-1]
         if "." in entry and ext.lower() in ["txt"]:
+            results.append(full_path)
+        elif "." in entry and ext.lower() in ["gmt"]:
             results.append(full_path)
         elif bf.isdir(full_path):
             results.extend(_list_files_recursively(full_path))
@@ -117,6 +134,7 @@ class CustomGeneDataset(Dataset):
         self, 
         genepath="data.txt",
         labelpath="label.txt", 
+        gene_set = None,
         transform=None, 
         filter = None, 
         scaler = None, 
@@ -126,10 +144,17 @@ class CustomGeneDataset(Dataset):
         class_cond = False,
     ):
         assert os.path.exists(genepath), "gene path: {} does not exist.".format(genepath)
-        logger.info(f"reading input data from {os.path.basename(genepath)}") 
+        logger.log(f"reading input data from {os.path.basename(genepath)}") 
         # read the gene expression 
         df = pd.read_csv(genepath, sep='\t', index_col=0)
-        logger.info(f"loaded input data has {df.shape[1]} genes, {df.shape[0]} samples")
+        logger.log(f"loaded input data has {df.shape[1]} genes, {df.shape[0]} samples")
+        if gene_set:
+            geneset = read_gmt_file(gene_set)
+            logger.log(f"The input gene set is {geneset['gene_set']}, contains {len(geneset['genes'])} genes")
+            # logger.debug(f"The intersection is : {df.columns} -- dataset")
+            # logger.debug(f"The intersection is : {df.columns} -- dataset")
+            df = df[df.columns.intersection(geneset['genes'])]
+            logger.log(f"loaded selected data has {df.shape[1]} genes, {df.shape[0]} samples")
         gene_features = df.values
     
         assert os.path.exists(labelpath), "gene label path: {} does not exist.".format(labelpath)
@@ -276,3 +301,15 @@ def datascalar(dataset):
 
     mins, maxs = dataset.min(), dataset.max()
     return mins, maxs 
+
+
+def read_gmt_file(filename):
+    gene_sets = {}
+    with open(filename, 'r') as file:
+        for line in file:
+            parts = line.strip().split('\t')
+            gene_set_name = parts[0]
+            # description = parts[1]
+            genes = parts[2:]
+            gene_sets = {'gene_set':gene_set_name, 'genes': genes}
+    return gene_sets
