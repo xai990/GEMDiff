@@ -1,6 +1,5 @@
 import argparse 
 import os 
-import datetime 
 import matplotlib.pyplot as plt
 from . import gaussian_diffusion as gd 
 from .gaussian_diffusion import DenoiseDiffusion
@@ -9,6 +8,7 @@ from .mlp import GPT
 from . import logger 
 import umap.plot
 import numpy as np 
+import plotly.graph_objects as go
 
 NUM_CLASSES = 2
 
@@ -127,110 +127,97 @@ def showdata(dataset,
             num_steps=1000,
             num_shows=20,
             cols = 10,
-            # epoch = 1,
-            exampledata = False,
-            final_data = False,
-            scaler = None,
+            synthesis_data = None,
     ):
     # dir to save the plot image
     assert isinstance(dir,str)
     os.makedirs(dir,exist_ok=True)
-    reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2)
+    reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2, random_state=41)
     colors = ['blue','orange']
     if schedule_plot == "forward": 
         assert diffusion is not None
         rows = num_shows // cols
         fig,axs = plt.subplots(rows,cols,figsize=(28,3))
         plt.rc('text',color='black')
-        if exampledata == True:
-            data = dataset[:]
-            for i in range(num_shows):
-                j = i//10
-                k = i%10
-                t = th.full((data.shape[0],),i*num_steps//num_shows)
-                # logger.debug(f"The t is: {t} -- script_util")
-                q_i = diffusion.q_sample(data, t)
-                axs[j,k].scatter(q_i[:,0].cpu(),q_i[:,1].cpu(),color='red',edgecolor='white')
-                axs[j,k].set_axis_off()
-                axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
-        else:
-            data , y = dataset[:][0], dataset[:][1]['y']
-            data = th.from_numpy(data).float()
-            for i in range(num_shows):
-                j = i // cols
-                k = i % cols
-                t = th.full((data.shape[0],),i*num_steps//num_shows)
-                x_i = diffusion.q_sample(data,t)
-                q_i = reducer.fit_transform(x_i)
-                for ele in y:
-                    index_mask = (ele==y)
-                    if np.any(index_mask):
-                        axs[j,k].scatter(q_i[index_mask,0],
-                                    q_i[index_mask,1],
-                                    label = ele, 
-                                    color=colors[ele],
-                                    edgecolor='white')
-                axs[j,k].set_axis_off()
-                axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
-        plt.savefig(f"{dir}/dataset-forward.png")
-        plt.close()
-    elif schedule_plot == "origin":
-        fig,ax = plt.subplots()      
-        if exampledata == True:
-            data = dataset[:].T.cpu()
-            ax.scatter(*data, color = 'blue', edgecolor = 'white')
-        else:
-            data , y = dataset[:][0], dataset[:][1]['y']
-            q_i = reducer.fit_transform(data)
+        data , y = dataset[:][0], dataset[:][1]['y']
+        data = th.from_numpy(data).float()
+        for i in range(num_shows):
+            j = i // cols
+            k = i % cols
+            t = th.full((data.shape[0],),i*num_steps//num_shows)
+            x_i = diffusion.q_sample(data,t)
+            q_i = reducer.fit_transform(x_i)
             for ele in y:
                 index_mask = (ele==y)
                 if np.any(index_mask):
-                    ax.scatter(q_i[index_mask,0],
+                    axs[j,k].scatter(q_i[index_mask,0],
                                 q_i[index_mask,1],
                                 label = ele, 
                                 color=colors[ele],
                                 edgecolor='white')
-        # ax.scatter(q_i[:,0], q_i[:,1],color='red',edgecolor='white')
+            axs[j,k].set_axis_off()
+            axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
+        plt.savefig(f"{dir}/dataset-forward.png")
+        plt.close()
+    elif schedule_plot == "origin":
+        fig,ax = plt.subplots()      
+        data , y = dataset[:][0], dataset[:][1]['y']
+        q_i = reducer.fit_transform(data)
+        for ele in y:
+            index_mask = (ele==y)
+            if np.any(index_mask):
+                ax.scatter(q_i[index_mask,0],
+                            q_i[index_mask,1],
+                            label = ele, 
+                            color=colors[ele],
+                            edgecolor='white')
         ax.axis('off')
         plt.savefig(f"{dir}/dataset.png")
         plt.close()
     elif schedule_plot == "reverse":
-        if exampledata == True:
-            fig,axs = plt.subplots(1,10,figsize=(28,3))
-            for i in range(1,11):
-                cur_x = dataset[i*10].detach().cpu()
-                axs[i-1].scatter(cur_x[:,0],cur_x[:,1],color='red',edgecolor='white');
-                axs[i-1].set_axis_off();
-                axs[i-1].set_title('$q(\mathbf{x}_{'+str(i*10)+'})$')
-        else:
-            if final_data:
-                fig,ax = plt.subplots()
-                data = dataset['arr_0'].reshape(400,-1)
-                mins, maxs = scaler[0], scaler[1] 
-                data = (data+ mins) * (maxs - mins)
-                y = dataset['arr_1']
-                q_i = reducer.fit_transform(data)
-                for ele in y:
-                    index_mask = (ele==y)
-                    if np.any(index_mask):
-                        ax.scatter(q_i[index_mask,0],
-                                    q_i[index_mask,1],
-                                    label = ele, 
-                                    color=colors[ele],
-                                    edgecolor='white')
-                ax.axis('off')
-            else:
-                fig,axs = plt.subplots(1,10,figsize=(28,3))
-                B, *feature = dataset.shape
-                dataset = dataset.reshape(B, -1)
-                reducer = umap.UMAP(n_neighbors=15, min_dist=0.1, n_components=2)
-                for i in range(1,11):
-                    pi_x = dataset[i*10].detach().cpu()
-                    pi = reducer.fit_transform(pi_x)
-                    axs[i-1].scatter(pi[:,0],pi[:,1],color='orange',edgecolor='white');
-                    axs[i-1].set_axis_off();
-                    axs[i-1].set_title('$q(\mathbf{x}_{'+str(i*10)+'})$')
-        plt.savefig(f"{dir}/dataset-reversed.png")
-        plt.close()
+        data_r , y_r = dataset[:][0], dataset[:][1]['y']
+        data_f, y_f = synthesis_data["arr_0"], synthesis_data["arr_1"]
+        q_r = reducer.fit_transform(data_r)
+        q_f = reducer.fit_transform(data_f)
+        # Create a Plotly figure
+        fig = go.Figure()
+        # plot the synthesis data
+        for ele in np.unique(y_f):
+            index_mask = (ele==y_f)
+            if np.any(index_mask):
+                # Add the first scatter plot to the figure
+                label = f'Synthesis {ele}'
+                fig.add_trace(go.Scatter(x=q_f[index_mask,0], y=q_f[index_mask,1],
+                                        mode='markers', 
+                                        name=label,textposition='top center')
+                                        )
+
+        # Add the original data scatter plot to the figure
+        for ele in np.unique(y_r):
+            index_mask = (ele==y_r)
+            if np.any(index_mask):
+                label = f'Real {ele}'
+                fig.add_trace(go.Scatter(x=data_r[index_mask,0], y=data_r[index_mask,1],
+                                        mode='markers', 
+                                        name=label,textposition='top center')
+                                        )
+                        
+
+        # Update the layout
+        fig.update_layout(title='Scatter Plots with Real mRNA data and synthetic mRNA data',
+                        xaxis_title='X Axis',
+                        yaxis_title='Y Axis',
+                        legend_title='Datasets')
+
+        # Show the figure
+        fig.write_html(f"{dir}/UMAP_plot_realvsfake.html")
+
     else:
         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
+
+
+
+def find_model(model_name):
+    assert os.path.isfile(model_name), f'Could not find model checkpoint at {model_name}'
+    checkpoint = th.load(model_name)
+    return checkpoint 
