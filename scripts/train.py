@@ -1,6 +1,8 @@
 """ 
 Train a diffusion model on seq2seq model.
 """
+
+import argparse
 from omegaconf import OmegaConf
 from diffusion import logger, dist_util
 from diffusion.datasets import load_data, data_loader
@@ -19,7 +21,7 @@ import os
 import matplotlib.pyplot as plt
 
 
-def main():
+def main(args):
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     logger.configure(dir='log/')
     logger.log("**********************************")
@@ -27,7 +29,7 @@ def main():
     dist_util.setup_dist()
     logger.log(f"device information:{dist_util.dev()}")
     basic_conf = create_config()
-    input_conf = OmegaConf.load("configs/mrna_gpt_diffusion.yaml")
+    input_conf = OmegaConf.load(args.config)
     config = OmegaConf.merge(basic_conf, input_conf)
     
     # load data 
@@ -85,7 +87,7 @@ def main():
         if (epoch % config.train.log_interval == 0):
             logger.log(f"The loss is : {loss} at {epoch} epoch")
         # save model checkpoint     
-        if(epoch%config.train.save_interval==0):
+        if(epoch%config.train.save_interval==0) and epoch > 0:
             if dist.get_rank() == 0:
                 checkpoint = {
                     "model": model.state_dict(),
@@ -125,4 +127,7 @@ def create_config():
 
 
 if __name__=="__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--config", type=str, default="configs/mrna_gpt_diffusion.yaml")
+    args = parser.parse_args()
+    main(args)
