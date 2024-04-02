@@ -1,162 +1,3 @@
-# from torch.optim import AdamW
-# from . import logger, dist_util 
-# import functools
-# from .script_util import zero_grad, showdata
-# import torch.distributed as dist
-# import os 
-# import blobfile as bf
-# import torch as th 
-
-# class TrainLoop:
-#     def __init__(
-#         self,
-#         *,
-#         model,
-#         diffusion,
-#         data,
-#         batch_size,
-#         microbatch,
-#         lr,
-#         lr_epoch,
-#         steps_per_epoch,
-#         log_interval,
-#         save_interval,
-#         dir_out,
-#         datasetshape,    
-#         schedule_sampler=None,
-#         schedule_plot=None, 
-#         exampledata = False,
-#     ):  
-#         self.model = model
-#         self.diffusion = diffusion
-#         self.data = data
-#         self.batch_size = batch_size
-#         self.microbatch = microbatch if microbatch > 0 else batch_size
-#         self.lr = lr
-#         self.model_params = list(self.model.parameters())
-#         self.master_params = self.model_params
-#         self.epoch = 0
-#         self.lr_epoch = lr_epoch
-#         self.steps_per_epoch = steps_per_epoch
-#         self.log_interval = log_interval
-#         self.save_interval = save_interval if save_interval > 0 else lr_epoch-1 
-#         self.opt = AdamW(self.master_params, lr=self.lr)
-#         self.schedule_sampler = schedule_sampler
-#         self.schedule_plot = schedule_plot 
-#         self.dir_out = dir_out 
-#         self.datasetshape = datasetshape
-#         self.exampledata = exampledata
-#     def run_loop(self):
-#         while (self.epoch < self.lr_epoch):
-#             for step in range(self.steps_per_epoch):
-                
-#                 # logger.debug(f"The len of data in the loader is: {len(next(self.data))} -- train_util")
-#                 if len(next(self.data)) == 2:
-#                     batch_x, cond = next(self.data)
-#                 else:
-#                     batch_x = next(self.data)
-#                     cond = None
-#                 # logger.debug(f"The data in each step is: {batch_x.size()} with {self.epoch}-- train_util")
-#                 # logger.debug(f"The size of microbatch: {self.microbatch} -- train_util")
-#                 # self.run_step(batch_x)
-#                 self.run_step(batch_x,cond)
-#             if self.epoch % self.log_interval == 0:
-#                 logger.dumpkvs()
-#                 if self.schedule_plot:
-#                     _, x_seq = self.diffusion.p_sample_loop(self.model,self.datasetshape)
-#                     # logger.debug(f"The x_seq sample is: {len(x_seq)} -- train_util")
-#                     # logger.debug(f"The x_seq size is: {x_seq[0].size()} -- train_util")
-#                     showdata(x_seq, 
-#                             dir = self.dir_out,
-#                             schedule_plot="reverse",
-#                             epoch = self.epoch,
-#                             exampledata = self.exampledata,
-#                     )
-#             # save the model 
-#             if self.epoch % self.save_interval == 0:
-#                 self.save()
-#             self.epoch += 1
-            
-           
-
-
-#     def run_step(self,batch,cond=None):
-#         # logger.debug(f"The size of batch: {batch.size()} -- train_util")
-#         self.forward_backward(batch,cond)
-#         self.optimize_normal()
-#         self.log_step()
-
-
-#     def forward_backward(self, batch, cond):
-#         zero_grad(self.model_params)
-
-#         for i in range(0,batch.shape[0], self.microbatch):
-#             # logger.debug(f"Record the i: {i} --train_util")
-#             micro = batch[i : i + self.microbatch].to(dist_util.dev())
-#             if cond:
-#                 micro_cond = {
-#                     k: v[i:i+self.microbatch].to(dist_util.dev())
-#                     for k, v in cond.items()
-#                 }
-#             t, weights = self.schedule_sampler.sample(micro.shape[0], dist_util.dev())
-#             # logger.debug(f"The size of t:{t.size} --train_util")
-#             compute_loss = functools.partial(
-#                 self.diffusion.loss,
-#                 self.model,
-#                 micro,
-#                 t,
-#             )
-            
-#             losses = compute_loss()
-#             #losses = self.diffusion.loss(self.model,micro,t)
-            
-#             loss = (losses["loss"] * weights).mean()
-#             log_loss_dict(
-#                 self.diffusion, t, {k: v * weights for k, v in losses.items()}
-#             )
-#             loss.backward()
-
-#     def optimize_normal(self):
-#         self.opt.step()
-        
-
-#     def log_step(self):
-#         logger.logkv("step", self.epoch)
-
-
-#     def save(self):
-#         def save_checkpoint(rate, params):
-#             state_dict = self._master_params_to_state_dict(params)
-#             if dist.get_rank() == 0:
-#                 logger.log(f"saving model {rate}...")
-#                 filename = f"model{(self.epoch):06d}.pt"
-#                 with bf.BlobFile(bf.join(get_blob_logdir(), filename), "wb") as f:
-#                     th.save(state_dict, f)
-#         save_checkpoint(0, self.master_params)
-#         dist.barrier()
-
-
-#     def _master_params_to_state_dict(self, master_params):
-#         state_dict = self.model.state_dict()
-#         for i, (name, _value) in enumerate(self.model.named_parameters()):
-#             assert name in state_dict
-#             state_dict[name] = master_params[i]
-#         return state_dict
-
-
-# def log_loss_dict(diffusion, ts, losses):
-#     for key, values in losses.items():
-#         logger.logkv_mean(key, values.mean().item())
-
-
-
-# def get_blob_logdir():
-#     return os.environ.get("DIFFUSION_BLOB_LOGDIR", logger.get_dir())
-
-
-
-
-
 import copy
 import functools
 import os
@@ -170,13 +11,7 @@ from torch.optim import AdamW
 
 from . import dist_util, logger
 from .script_util import zero_grad
-# from .fp16_util import (
-#     make_master_params,
-#     master_params_to_model_params,
-#     model_grads_to_master_grads,
-#     unflatten_master_params,
-#     zero_grad,
-# )
+
 from .nn import update_ema
 from .resample import LossAwareSampler, UniformSampler
 
@@ -200,8 +35,6 @@ class TrainLoop:
         log_interval,
         save_interval,
         resume_checkpoint,
-        # use_fp16=False,
-        # fp16_scale_growth=1e-3,
         schedule_sampler=None,
         weight_decay=0.0,
         lr_anneal_steps=0,
@@ -220,8 +53,6 @@ class TrainLoop:
         self.log_interval = log_interval
         self.save_interval = save_interval
         self.resume_checkpoint = resume_checkpoint
-        # self.use_fp16 = use_fp16
-        # self.fp16_scale_growth = fp16_scale_growth
         self.schedule_sampler = schedule_sampler or UniformSampler(diffusion)
         self.weight_decay = weight_decay
         self.lr_anneal_steps = lr_anneal_steps
@@ -236,8 +67,6 @@ class TrainLoop:
         self.sync_cuda = th.cuda.is_available()
 
         self._load_and_sync_parameters()
-        # if self.use_fp16:
-            # self._setup_fp16()
 
         self.opt = AdamW(self.master_params, lr=self.lr, weight_decay=self.weight_decay)
         if self.resume_step:
@@ -314,10 +143,6 @@ class TrainLoop:
             )
             self.opt.load_state_dict(state_dict)
 
-    # def _setup_fp16(self):
-    #     self.master_params = make_master_params(self.model_params)
-    #     self.model.convert_to_fp16()
-
     def run_loop(self):
         while (
             not self.lr_anneal_steps
@@ -334,7 +159,7 @@ class TrainLoop:
                     return
             self.step += 1
             # mannually set the stop criteria 
-            if self.step == 10001:
+            if self.step == 80001:
                 break
         # Save the last checkpoint if it wasn't already saved.
         if (self.step - 1) % self.save_interval != 0:
@@ -342,9 +167,6 @@ class TrainLoop:
 
     def run_step(self, batch, cond):
         self.forward_backward(batch, cond)
-        # if self.use_fp16:
-        #     self.optimize_fp16()
-        # else:
         self.optimize_normal()
         self.log_step()
 
@@ -382,10 +204,6 @@ class TrainLoop:
             log_loss_dict(
                 self.diffusion, t, {k: v * weights for k, v in losses.items()}
             )
-            # if self.use_fp16:
-            #     loss_scale = 2 ** self.lg_loss_scale
-            #     (loss * loss_scale).backward()
-            # else:
             loss.backward()
 
     # def optimize_fp16(self):

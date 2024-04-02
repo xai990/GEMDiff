@@ -177,8 +177,11 @@ def showdata(dataset,
     elif schedule_plot == "reverse":
         data_r , y_r = dataset[:][0], dataset[:][1]['y']
         data_f, y_f = synthesis_data["arr_0"], synthesis_data["arr_1"]
-        q_r = reducer.fit_transform(data_r)
-        q_f = reducer.fit_transform(data_f)
+        # stack the data together for overarching patterns 
+        data_merged = np.vstack([data_r,data_f])
+        q_i = reducer.fit_transform(data_merged)
+        q_r = q_i[:len(y_r)]
+        q_f = q_i[len(y_r):]
         # Create a Plotly figure
         fig = go.Figure()
         # plot the synthesis data
@@ -197,14 +200,14 @@ def showdata(dataset,
             index_mask = (ele==y_r)
             if np.any(index_mask):
                 label = f'Real {ele}'
-                fig.add_trace(go.Scatter(x=data_r[index_mask,0], y=data_r[index_mask,1],
+                fig.add_trace(go.Scatter(x=q_r[index_mask,0], y=q_r[index_mask,1],
                                         mode='markers', 
                                         name=label,textposition='top center')
                                         )
                         
 
         # Update the layout
-        fig.update_layout(title='Scatter Plots with Real mRNA data and synthetic mRNA data',
+        fig.update_layout(title='UMAP Plots with Real mRNA data and synthetic mRNA data',
                         xaxis_title='X Axis',
                         yaxis_title='Y Axis',
                         legend_title='Datasets')
