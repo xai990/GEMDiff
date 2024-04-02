@@ -9,7 +9,7 @@ import numpy as np
 from tqdm import tqdm 
 import torch.nn.functional as F
 from . import logger 
-from .nn import mean_flat
+from .diffusion_util import mean_flat, discretized_gaussian_log_likelihood, normal_kl
 import math 
 import enum
 
@@ -101,11 +101,26 @@ class LossType(enum.Enum):
         return self == LossType.KL
 
 
+class ModelMeanType(enum.Enum):
+    """
+    which type of output the model predicts
+    """
+    EPSILON = enum.auto()
 
 
+class ModelVarType(enum.Enum):
+    """
+    What is used as the model's output variance.
 
-class DenoiseDiffusion():
-    
+    The LEARNED_RANGE option has been added to allow the model to predict
+    values between FIXED_SMALL and FIXED_LARGE, making its job easier.
+    """
+
+    LEARNED = enum.auto()
+    FIXED = enum.auto()
+
+
+class DenoiseDiffusion():    
     """
     Utilities for training and sampling diffusion model.
 
@@ -115,14 +130,17 @@ class DenoiseDiffusion():
         self,
         *,
         betas,
+        model_mean_type,
+        model_var_type,
         loss_type,
         log_every_t,
-        parameterization="eps",
     ):
         super().__init__()
-        self.parameterization=parameterization
+        
         self.betas = betas 
         self.loss_type = loss_type
+        self.model_mean_type = model_mean_type 
+        self.model_var_type = model_var_type 
         assert len(betas.shape) == 1, "beta must be 1-D"
         assert (betas > 0).all() and (betas <= 1).all()
 
@@ -236,15 +254,31 @@ class DenoiseDiffusion():
         if model_kwargs is None:
             model_kwargs = {}
         
-        B  = x.shape[0]
+        B, F  = x.shape
         assert t.shape == (B,)
         model_output = model(x,t,**model_kwargs)
         
-        if self.parameterization == "eps":
+        if self.model_var_type == ModelVarType.LEARNED:
+            assert model_output.shape == (B,F*2)
+            model_output, model_var_values = th.split(model_output, F, dim=1)
+            min_log = _extract_into_tensor(self.posterior_log_variance_clipped, t, x.shape)
+            max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
+            frac = (model_var_values + 1) / 2
+            model_log_variance = frac * max_log + (1 - frac) * min_log 
+            model_variance = th.exp(model_log_variance)
+        else:
+            # fixed large (log var without clip)
+            model_variance, model_log_variance = np.append(self.posterior_variance[1], self.betas[1:]),np.log(np.append(self.posterior_variance[1], self.betas[1:]))
+        
+        posterior_variance = _extract_into_tensor(model_variance, t, x.shape)
+        posterior_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
+
+        if self.model_mean_type == ModelMeanType.EPSILON:
             x_recon = self._predict_start_from_noise(x, t=t,noise=model_output)
         if clip_denoised:
             x_recon.clamp_(-1. , 1.)
-        model_mean, posterior_variance,posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x, t=t)
+        
+        model_mean, _, _ = self.q_posterior(x_start=x_recon, x_t=x, t=t)
         
         return {
             "model_mean": model_mean,
@@ -299,10 +333,34 @@ class DenoiseDiffusion():
         return final 
 
 
-    def get_loss(self, pred, target):
-        #loss = F.mse_loss(pred,target)
-        loss = th.nn.functional.mse_loss(target, pred, reduction='none')
-        return loss
+    def _vb_terms_bpd(
+        self, model, x_start, x_t, t, clip_denoised=True, model_kwargs=None
+    ):
+        """
+        Get a term for the variational lower-bound.
+        :return: a dict with the following keys:
+            - 'output': a shape [N] tensor of NLLs or KLs.
+            - 'pred_xstart': the x_0 predictions.
+        """
+        true_mean, _, true_log_variance_clipped = self.q_posterior_mean_variance(
+            x_start=x_start, x_t=x_t, t=t
+        )
+        out = self.p_mean_variance(
+            model, x_t, t, model_kwargs=model_kwargs
+        )
+        kl = normal_kl(
+            true_mean, true_log_variance_clipped, out["model_mean"], out["posterior_log_variance"]
+        )
+        kl = mean_flat(kl)/np.log(2.0)
+
+        decoder_nll = -discretized_gaussian_log_likelihood(
+            x_start, means=out["model_mean"], log_scales=0.5 * out["posterior_log_variance"]
+        )
+        assert decoder_nll.shape == x_start.shape
+        decoder_nll = mean_flat(decoder_nll) / np.log(2.0)
+        output = th.where((t==0), decodeer_nll,kl)
+        return {"output": output, "pred_xstart": out["pred_xstart"]}
+
 
     def loss(self, model, x_start, t, noise=None, model_kwargs=None):
         """
@@ -320,8 +378,18 @@ class DenoiseDiffusion():
         else:
             raise NotImplementedError(f"ParameteriZation {self.parameterization} not yet supported")
         
-        # the take the mean on each dimension [N x C x F], dim = [1,2]
-        terms["loss"] = mean_flat(self.get_loss(model_out, target))
+        if self.loss_type == LossType.MSE:
+            target = {
+                ModelMeanType.EPSILON:noise,
+            }[self.model_mean_type]
+            assert model_output.shape == target.shape == x_start.shape
+            # the take the mean on each dimension [N x C x F], dim = [1,2]
+            terms["mse"] = mean_flat((target-model_output) ** 2)
+        
+        if "vb" in terms:
+            terms["loss"] = terms["mse"] + terms["vb"]
+        else:
+            terms["loss"] = terms["mse"]
         return terms
     
 

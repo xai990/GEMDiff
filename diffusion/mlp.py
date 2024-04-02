@@ -50,6 +50,11 @@ log:
 log:
 * MLP GELU approximate none -> tanh does not perform well 
 * change it back to none 
+
+2024/04/02
+log:
+* learn sigma 
+
 """
 
 
@@ -166,15 +171,12 @@ class SPT(nn.Module):
 
     
 class RSPT(nn.Module):
-    def __init__(self, *, n_embd=768,patch_size):
-        super().__init__()
-        patch_dim = patch_size  
+    def __init__(self, *, n_embd=768,patch_dim,):
+        super().__init__() 
         self.back_patch_tokens = nn.Sequential(
-            # nn.LayerNorm(n_embd, elementwise_affine=False, eps=1e-6),
+            nn.GELU(), 
             nn.Linear(n_embd, patch_dim),
-            Rearrange('b l p -> b (p l)', p = patch_size),
-           
-            
+            Rearrange('b l p -> b (p l)', p = patch_dim),
         )
     
     def forward(self,x):
@@ -188,18 +190,17 @@ class GPT(nn.Module):
         patch_size,
         n_head,
         dropout,
-        # t_embd,
-        # gene_block = 128,
         n_embd=768,
         n_layer=4,
         num_classes = None,
+        learn_sigma = True,
     ):
         super().__init__()
         # assert config.vocab_size is not None
         # assert config.block_size is not None
         # self.config = config
         self.t_embd = n_embd
-        # self.gene_block = gene_block
+        self.learn_sigma = learn_sigma 
         self.gene_feature = gene_feature
         self.time_embed = nn.Sequential(
             nn.Linear(n_embd, self.t_embd*4),
@@ -218,10 +219,11 @@ class GPT(nn.Module):
         ))
         self.patch_size = patch_size
         num_patches = (gene_feature // patch_size)
-        self.num_patches = num_patches
+        self.num_patches = num_patches 
+        self.patch_dim_out = patch_size * 2 if learn_sigma else patch_size 
         self.to_patch_embedding = SPT(dim = n_embd, patch_size = patch_size)
         self.pos_embedding = nn.Parameter(torch.randn(1, num_patches, n_embd)) # change 3rd pos 
-        self.back_patch_embedding = RSPT(n_embd = n_embd, patch_size = patch_size)
+        self.back_patch_embedding = RSPT(n_embd = n_embd, patch_dim = self.patch_dim_out)
         # self.transformer = nn.ModuleDict(dict(
         #     wte = nn.Embedding(config.vocab_size, config.n_embd),
         #     wpe = nn.Embedding(config.block_size, config.n_embd),
