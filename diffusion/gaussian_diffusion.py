@@ -372,11 +372,6 @@ class DenoiseDiffusion():
         noise = th.randn_like(x_start, device = x_start.device)
         x_t = self.q_sample(x_start = x_start, t=t,noise=noise)
         model_out = model(x_t, t, **model_kwargs)
-
-        if self.parameterization == "eps":
-            target = noise 
-        else:
-            raise NotImplementedError(f"ParameteriZation {self.parameterization} not yet supported")
         
         if self.loss_type == LossType.MSE:
             target = {
