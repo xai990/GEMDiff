@@ -33,6 +33,7 @@ def model_and_diffusion_defaults():
             "linear_end": 0.0195,
             "log_every_t": 10,
             "schedule_sampler": "uniform",
+            "learn_sigma": True,
         }
     }
 
@@ -51,6 +52,7 @@ def create_model_and_diffusion(
     log_every_t,
     n_layer,
     patch_size,
+    learn_sigma,
     **kwargs,
 ):
     model = create_model(
@@ -68,6 +70,7 @@ def create_model_and_diffusion(
         linear_start= linear_start,
         linear_end = linear_end,
         log_every_t = log_every_t,
+        learn_sigma = learn_sigma,
     )
     return model, diffusion
 
@@ -101,14 +104,18 @@ def create_diffusion(
     linear_start = 0.0015,
     linear_end = 0.0195,
     log_every_t = 10,
+    learn_sigma = True, 
 
 ):
     betas = gd.get_named_beta_schedule(noise_schedule, steps, linear_start,linear_end)
     # logger.debug(f"The betas is {betas} -- script")
+    loss_type = gd.LossType.MSE
     return DenoiseDiffusion(
         betas = betas,
         log_every_t = log_every_t,
-
+        loss_type = loss_type,
+        model_mean_type = gd.ModelMeanType.EPSILON,
+        model_var_type = gd.ModelVarType.LEARNED if learn_sigma else gd.ModelVarType.FIXED
     )
 
 
