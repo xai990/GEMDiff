@@ -15,22 +15,20 @@ from diffusion.script_util import (
 from omegaconf import OmegaConf
 import datetime
 
-def main():
+def main(args):
     #args = create_argparser().parse_args()
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     dist_util.setup_dist()
-    logger.configure(dir='log/')
+    logger.configure(dir=args.dir)
     # configure the dir out 
     
     logger.log("Load the config...")
-    input_conf = OmegaConf.load("configs/mrna_gpt_diffusion.yaml")
-
-    ckpt_path = input_conf.sample.model_path
+    ckpt_path = args.model_path
     state_dict = find_model(ckpt_path)
     basic_conf = create_config()
     loaded_conf = state_dict["conf"]
     config = OmegaConf.merge(basic_conf, loaded_conf)
-    dir_out = os.path.join(config.data.dir_out, now,)
+    dir_out = os.path.join(args.dir_out, now,)
     logger.log(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
@@ -104,7 +102,7 @@ def create_config():
         },
         "sample":{
             "batch_size": 128,
-            "num_samples": 400,
+            "num_samples": 800,
             "model_path": 250,
             "clip_denoised": False,
         }
@@ -120,4 +118,9 @@ def create_config():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_path", type=str, default="log/mrna_8/2024-03-28-13-18/model08000.pt")
+    parser.add_argument("--dir_out", type=str, default="results/")
+    parser.add_argument("--dir", type=str, default="log/")
+    args = parser.parse_args()
+    main(args)

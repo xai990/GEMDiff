@@ -1,5 +1,5 @@
 import os
-
+import argparse
 import numpy as np
 import torch as th
 from omegaconf import OmegaConf
@@ -9,15 +9,14 @@ import datetime
 from diffusion.datasets import load_data
 
 
-def main():
+def main(args):
     logger.configure(dir = 'log/')
     logger.log("**********************************")
     logger.log("log configure")
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     
-    input_conf = OmegaConf.load("configs/mrna_gpt_diffusion.yaml")
-    dir_out = os.path.join(input_conf.data.dir_out, now,)
-    ckpt_path = input_conf.sample.model_path
+    ckpt_path = args.model_path
+    dir_out = os.path.join(args.dir_out, now,)
     state_dict = find_model(ckpt_path)
     
     config = state_dict["conf"]
@@ -30,6 +29,7 @@ def main():
                     class_cond=config.model.class_cond,
                     # gene_set = config.data.gene_set,
     )
+    
     logger.log("Plot the original dataset with UMAP")
     showdata(dataset,dir = dir_out, schedule_plot = "origin",)   
     logger.log("Plot the forward diffsuion process with UMAP")
@@ -40,7 +40,7 @@ def main():
              num_steps = config.diffusion.diffusion_steps,
     )
     # load the fake data 
-    file_path = input_conf.plot.file_path
+    file_path = args.sample_file
     data_fake = np.load(file_path)
     
     showdata(dataset,dir = dir_out, schedule_plot = "reverse", synthesis_data=data_fake)
@@ -48,4 +48,10 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_path", type=str, default="log/mrna_8/2024-03-28-13-18/model08000.pt")
+    parser.add_argument("--dir_out", type=str, default="results/")
+    parser.add_argument("--dir", type=str, default="log/")
+    parser.add_argument("--sample_file", type=str, default="results/800x8.npz")
+    args = parser.parse_args()
+    main(args)

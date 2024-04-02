@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 
 def main(args):
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
-    logger.configure(dir='log/')
+    logger.configure(dir=args.dir)
     logger.log("**********************************")
     logger.log("log configure")
     dist_util.setup_dist()
@@ -109,7 +109,6 @@ def create_config():
             "data_dir": None,
             "dir_out": "results",
             "gene_selection": None,
-            "exampledata": False,
         },
         "train":{
             "microbatch": 16,
@@ -129,5 +128,6 @@ def create_config():
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/mrna_gpt_diffusion.yaml")
+    parser.add_argument("--dir", type=str, default="log/")
     args = parser.parse_args()
     main(args)
