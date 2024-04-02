@@ -1,3 +1,9 @@
+# Modified from OpenAI's diffusion repos
+#     GLIDE: https://github.com/openai/glide-text2im/blob/main/glide_text2im/gaussian_diffusion.py
+#     ADM:   https://github.com/openai/guided-diffusion/blob/main/guided_diffusion
+#     IDDPM: https://github.com/openai/improved-diffusion/blob/main/improved_diffusion/gaussian_diffusion.py
+#     DiT: https://github.com/facebookresearch/DiT/blob/main/diffusion/gaussian_diffusion.py
+
 import torch as th 
 import numpy as np 
 from tqdm import tqdm 
@@ -5,7 +11,13 @@ import torch.nn.functional as F
 from . import logger 
 from .nn import mean_flat
 import math 
+import enum
 
+"""
+log:
+* add loss type to model 
+* consider kl and discrete kl 
+"""
 
 def betas_for_alpha_bar(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
     """
@@ -80,6 +92,18 @@ def betas_for_alpha_bar(num_diffusion_timesteps, alpha_bar, max_beta=0.999):
     return np.array(betas)
 
 
+
+class LossType(enum.Enum):
+    MSE = enum.auto()
+    KL = enum.auto()
+
+    def is_vb(self):
+        return self == LossType.KL
+
+
+
+
+
 class DenoiseDiffusion():
     
     """
@@ -91,23 +115,29 @@ class DenoiseDiffusion():
         self,
         *,
         betas,
-        parameterization="eps",
+        loss_type,
         log_every_t,
+        parameterization="eps",
     ):
         super().__init__()
         self.parameterization=parameterization
         self.betas = betas 
+        self.loss_type = loss_type
         assert len(betas.shape) == 1, "beta must be 1-D"
         assert (betas > 0).all() and (betas <= 1).all()
 
         self.num_timesteps = int (betas.shape[0])
         self.alphas = 1. - self.betas
         self.alphas_cumprod = np.cumprod(self.alphas,axis=0)
+        self.alphas_cumprod_prev = np.append(1., self.alphas_cumprod[:-1])
+        assert self.alphas_cumprod_prev.shape == (self.num_timesteps,)
+
+        # calculations for diffusion q(x_t | x_{t-1}) and others 
         self.sqrt_alphas_cumprod = np.sqrt(self.alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = np.sqrt(1. - self.alphas_cumprod)
         self.sqrt_recip_alphas_cumprod = np.sqrt(1. / self.alphas_cumprod) 
         self.sqrt_recipm1_alphas_cumprod = np.sqrt( 1. / self.alphas_cumprod - 1)
-        self.alphas_cumprod_prev = np.append(1., self.alphas_cumprod[:-1])
+        # calculations for posterior  q(x_{t-1} | x_t, x_0)
         self.posterior_mean_coef1 = (
             betas * np.sqrt(self.alphas_cumprod_prev)
             /( 1. - self.alphas_cumprod)
@@ -310,3 +340,4 @@ def _extract_into_tensor(arr, timesteps, broadcast_shape):
         res = res[...,None]
     return res.expand(broadcast_shape)
     
+
