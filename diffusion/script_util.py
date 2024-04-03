@@ -63,6 +63,7 @@ def create_model_and_diffusion(
         class_cond = class_cond,
         n_layer = n_layer,
         patch_size = patch_size,
+        learn_sigma = learn_sigma,
     )
     diffusion = create_diffusion(
         steps= diffusion_steps,
@@ -84,7 +85,7 @@ def create_model(
         n_head,
         n_layer = 4,
         dropout = 0.0,
-        
+        learn_sigma = True,
     ):
     
     return GPT(
@@ -95,6 +96,7 @@ def create_model(
         n_layer = n_layer,
         patch_size =patch_size,
         num_classes=(NUM_CLASSES if class_cond else None),
+        learn_sigma = learn_sigma,
     )
 
 def create_diffusion(
@@ -164,7 +166,7 @@ def showdata(dataset,
                                 edgecolor='white')
             axs[j,k].set_axis_off()
             axs[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
-        plt.savefig(f"{dir}/dataset-forward.png")
+        plt.savefig(f"{dir}/dataset-forward_{data.shape[-1]}.png")
         plt.close()
     elif schedule_plot == "origin":
         fig,ax = plt.subplots()      
@@ -179,7 +181,7 @@ def showdata(dataset,
                             color=colors[ele],
                             edgecolor='white')
         ax.axis('off')
-        plt.savefig(f"{dir}/dataset.png")
+        plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
         plt.close()
     elif schedule_plot == "reverse":
         data_r , y_r = dataset[:][0], dataset[:][1]['y']
@@ -220,7 +222,7 @@ def showdata(dataset,
                         legend_title='Datasets')
 
         # Show the figure
-        fig.write_html(f"{dir}/UMAP_plot_realvsfake.html")
+        fig.write_html(f"{dir}/UMAP_plot_realvsfake_{data_r.shape[-1]}.html")
 
     else:
         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
