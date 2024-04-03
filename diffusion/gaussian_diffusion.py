@@ -264,14 +264,14 @@ class DenoiseDiffusion():
             min_log = _extract_into_tensor(self.posterior_log_variance_clipped, t, x.shape)
             max_log = _extract_into_tensor(np.log(self.betas), t, x.shape)
             frac = (model_var_values + 1) / 2
-            model_log_variance = frac * max_log + (1 - frac) * min_log 
-            model_variance = th.exp(model_log_variance)
+            posterior_log_variance = frac * max_log + (1 - frac) * min_log 
+            posterior_variance = th.exp(posterior_log_variance)
         else:
             # fixed large (log var without clip)
             model_variance, model_log_variance = np.append(self.posterior_variance[1], self.betas[1:]),np.log(np.append(self.posterior_variance[1], self.betas[1:]))
-        
-        posterior_variance = _extract_into_tensor(model_variance, t, x.shape)
-        posterior_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
+            posterior_variance = _extract_into_tensor(model_variance, t, x.shape)
+            posterior_log_variance = _extract_into_tensor(model_log_variance, t, x.shape)
+
 
         if self.model_mean_type == ModelMeanType.EPSILON:
             x_recon = self._predict_start_from_noise(x, t=t,noise=model_output)
@@ -342,7 +342,7 @@ class DenoiseDiffusion():
             - 'output': a shape [N] tensor of NLLs or KLs.
             - 'pred_xstart': the x_0 predictions.
         """
-        true_mean, _, true_log_variance_clipped = self.q_posterior_mean_variance(
+        true_mean, _, true_log_variance_clipped = self.q_posterior(
             x_start=x_start, x_t=x_t, t=t
         )
         out = self.p_mean_variance(
@@ -358,7 +358,7 @@ class DenoiseDiffusion():
         )
         assert decoder_nll.shape == x_start.shape
         decoder_nll = mean_flat(decoder_nll) / np.log(2.0)
-        output = th.where((t==0), decodeer_nll,kl)
+        output = th.where((t==0), decoder_nll,kl)
         return {"output": output, "pred_xstart": out["pred_xstart"]}
 
 
@@ -374,12 +374,25 @@ class DenoiseDiffusion():
         model_out = model(x_t, t, **model_kwargs)
         
         if self.loss_type == LossType.MSE:
+            if self.model_var_type == ModelVarType.LEARNED:
+                B, F = x_t.shape
+                assert model_out.shape == (B, F*2)
+                model_out, model_var_values = th.split(model_out, F, dim=1)
+                frozen_out = th.cat([model_out.detach(), model_var_values], dim=1)
+                terms["vb"] = self._vb_terms_bpd(
+                    model=lambda *args, r=frozen_out:r,
+                    x_start = x_start,
+                    x_t = x_t,
+                    t=t,
+                )["output"]
+                terms["vb"] *= self.num_timesteps / 1000.0
+            
             target = {
                 ModelMeanType.EPSILON:noise,
             }[self.model_mean_type]
-            assert model_output.shape == target.shape == x_start.shape
+            assert model_out.shape == target.shape == x_start.shape
             # the take the mean on each dimension [N x C x F], dim = [1,2]
-            terms["mse"] = mean_flat((target-model_output) ** 2)
+            terms["mse"] = mean_flat((target-model_out) ** 2)
         
         if "vb" in terms:
             terms["loss"] = terms["mse"] + terms["vb"]
