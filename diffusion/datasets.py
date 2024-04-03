@@ -51,7 +51,7 @@ def load_data(
     # logger.debug(f"The information of {gene_selection} -- datasets")
     dataset = CustomGeneDataset(all_files[0],
                                 all_files[1],
-                                gene_set = (all_files[2] if gene_set else None),
+                                gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
                                 scaler=True,
@@ -263,6 +263,7 @@ class GeneRandom():
             random.seed(self.seed)
             np.random.seed(self.seed)
         # random select the gene 
+        assert self.features <= sample.shape[-1], "selected feature size is greater than gene size."
         idx = np.random.randint(0,sample.shape[-1], self.features)
         # return sample[:,:,idx]
         return sample[:,idx]
