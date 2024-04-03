@@ -36,7 +36,7 @@ def main(args):
     dataset = load_data(data_dir = config.data.data_dir,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
-                    # gene_set = config.data.gene_set,
+                    gene_set = args.gene_set,
     )
     
     # change the size of the data 
@@ -98,6 +98,8 @@ def main(args):
                 checkpoint_path = os.path.join(get_blob_logdir(), filename)
                 th.save(checkpoint, checkpoint_path)
                 logger.log(f"Saved checkpoint to {checkpoint_path}")
+    
+    
     logger.log("completed")
 
 
@@ -127,7 +129,8 @@ def create_config():
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/mrna_gpt_diffusion.yaml")
+    parser.add_argument("--config", type=str, default="configs/mrna_128.yaml")
     parser.add_argument("--dir", type=str, default="log/")
+    parser.add_argument("--gene_set", type=str, default=None)
     args = parser.parse_args()
     main(args)
