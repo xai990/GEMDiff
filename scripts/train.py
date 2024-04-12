@@ -49,8 +49,15 @@ def main(args):
     dir_out = os.path.join(config.data.dir_out, now,)
     # plot the shape of the data 
     # showdata(dataset,dir = dir_out, schedule_plot = "origin",)     
+    if dataset[:][0].shape[-1] != config.model.feature_size:
+        config.model.feature_size =  dataset[:][0].shape[-1]
+        logger.log(f"{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
+    
+    ## need to reconsider the patch size 
+    ## here is a hard way, make the patch size is equal to the feature size
+    config.model.patch_size = config.model.feature_size
     config.model.n_embd = config.model.patch_size * 8
-   
+    
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
@@ -115,11 +122,11 @@ def create_config():
         "train":{
             "microbatch": 16,
             "log_interval": 500,
-            "save_interval": 8000,
+            "save_interval": 10000,
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":8001
+            "num_epoch":10001
         }
     }
     defaults.update(model_and_diffusion_defaults())
