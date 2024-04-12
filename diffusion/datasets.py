@@ -263,10 +263,12 @@ class GeneRandom():
             random.seed(self.seed)
             np.random.seed(self.seed)
         # random select the gene 
-        assert self.features <= sample.shape[-1], "selected feature size is greater than gene size."
-        idx = np.random.randint(0,sample.shape[-1], self.features)
+        if self.features <= sample.shape[-1]:
+            idx = np.random.randint(0,sample.shape[-1], self.features)
+            return sample[:,idx]
+        return sample [:,:]
         # return sample[:,:,idx]
-        return sample[:,idx]
+        
 
 
 
