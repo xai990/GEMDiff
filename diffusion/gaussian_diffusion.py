@@ -148,7 +148,9 @@ class DenoiseDiffusion():
         self.alphas = 1. - self.betas
         self.alphas_cumprod = np.cumprod(self.alphas,axis=0)
         self.alphas_cumprod_prev = np.append(1., self.alphas_cumprod[:-1])
-        assert self.alphas_cumprod_prev.shape == (self.num_timesteps,)
+        # logger.debug(f"The size of alphas cumprod: {self.alphas_cumprod[1:].shape} --- gd ")
+        self.alphas_cumprod_next = np.append(self.alphas_cumprod[1:], 0.0)
+        assert self.alphas_cumprod_next.shape == self.alphas_cumprod_prev.shape == (self.num_timesteps,)
 
         # calculations for diffusion q(x_t | x_{t-1}) and others 
         self.sqrt_alphas_cumprod = np.sqrt(self.alphas_cumprod)
@@ -212,6 +214,13 @@ class DenoiseDiffusion():
             _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t -
             _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape) * noise
         )
+
+
+    def _predict_eps_from_xstart(self, x_t, t, pred_xstart):
+        return(
+            _extract_into_tensor(self.sqrt_recip_alphas_cumprod, t, x_t.shape) * x_t
+            - pred_xstart
+        ) / _extract_into_tensor(self.sqrt_recipm1_alphas_cumprod, t, x_t.shape)
 
 
     def q_posterior(self, x_start, x_t, t):
@@ -313,7 +322,7 @@ class DenoiseDiffusion():
     def p_sample_loop(
         self, model,shape, return_intermediates=False, model_kwargs=None,
     ):
-
+        final=None
         device = next(model.parameters()).device
         seq = th.randn(shape, device=device)
         intermediates = [seq]
@@ -399,7 +408,109 @@ class DenoiseDiffusion():
         else:
             terms["loss"] = terms["mse"]
         return terms
+
+
+    def ddim_sample(
+        self,
+        model,
+        x,
+        t,
+        clip_denoised=True,
+        denoised_fn = None,
+        model_kwargs=None,
+        eta=0.0,
+    ):
+        """
+        Sample x_{t-1} from the model using DDIM.
+        
+        Same usage as p_sample()
+        """
+        out = self.p_mean_variance(
+            model, x, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
+        )
+        eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
+        alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
+        alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
+        sigma = (
+            eta
+            * th.sqrt((1 - alpha_bar_prev) / (1 - alpha_bar))
+            * th.sqrt(1 - alpha_bar / alpha_bar_prev)
+        )
+        noise = th.randn_like(x)
+        mean_pred = (
+            out["pred_xstart"] * th.sqrt(alpha_bar_prev)
+            + th.sqrt(1 - alpha_bar_prev-sigma ** 2) * eps
+        )
+        nonzero_mask = (
+            (t != 0).float().view(-1, *([1] * (len(x.shape)-1)))
+        ) # no noise when t == 0 
+        sample = mean_pred + nonzero_mask * sigma * noise
+        return {"sample": sample, "pred_xstart": out["pred_xstart"]}
+
+
+    def ddim_reverse_sample(
+        self,
+        model,
+        x,
+        t,
+        clip_denoised=True,
+        denoised_fn=None,
+        model_kwargs=None,
+        eta=0.0,
+    ):
+        """
+        Sample x_{t+1} from the model using DDIM reverse ODE 
+        """
+        assert eta == 0.0, "Reverse ODE only for deterministic path"
+        out = self.p_mean_variance(
+            model, x, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
+        )
+        eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
+        alpha_bar_next = _extract_into_tensor(self.alphas_cumprod_next, t, x.shape)
+        mean_pred = (
+            out["pred_xstart"] * th.sqrt(alpha_bar_next)
+            + th.sqrt(1 - alpha_bar_next) * eps
+        ) 
+        return {"sample": mean_pred, "pred_xstart": out["pred_xstart"]}
+
     
+    def ddim_sample_loop(
+        self,
+        model,
+        shape,
+        noise=None,
+        clip_denoised=True,
+        denoised_fn=None,
+        model_kwargs=None,
+        device=None,
+        progress=False,
+        eta=0.0,
+        return_intermediates=False,
+    ):
+        """
+        Generate sample from the model using DDIM 
+        """
+        final = None
+        if device is None:
+            device = next(model.parameters()).device
+        if noise is None:
+            seq = th.randn(shape, device=device)
+        intermediates = [seq]
+        # tqdm is used to display progress bars in loops or iterable processes
+        for i in tqdm(reversed(range(0,self.num_timesteps)),
+                      desc='Sampling t',
+                      total=self.num_timesteps,
+        ):
+            t = th.tensor([i] * shape[0], device = device)
+            out = self.ddim_sample(model, seq, t, model_kwargs=model_kwargs)
+            if i % self.log_every_t == 0:                
+                intermediates.append(out["sample"])
+            seq = out["sample"]
+        final = out["sample"]
+        if return_intermediates:
+            return final, intermediates 
+        return final 
+
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
     """
