@@ -429,7 +429,12 @@ class DenoiseDiffusion():
         out = self.p_mean_variance(
             model, x, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
         )
-        eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
+        # eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
+        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
+        if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
+            assert model_output.shape == (B, C * 2, *x.shape[2:])
+            model_output, model_var_values = th.split(model_output, C, dim=1)
+        eps = model_output
         alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
         alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
         sigma = (
