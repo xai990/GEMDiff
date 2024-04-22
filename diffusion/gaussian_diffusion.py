@@ -543,6 +543,7 @@ class DenoiseDiffusion():
                       desc='Sampling latent',
                       total=self.num_timesteps,
         ):
+            t = th.tensor([i] * shape[0], device=device)
             out = self.ddim_reverse_sample(
                     model,
                     x,
