@@ -430,10 +430,11 @@ class DenoiseDiffusion():
             model, x, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
         )
         # eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
-        model_output = model(x, self._scale_timesteps(t), **model_kwargs)
-        if self.model_var_type in [ModelVarType.LEARNED, ModelVarType.LEARNED_RANGE]:
+        model_output = model(x,t,**model_kwargs)
+        if self.model_var_type == ModelVarType.LEARNED:
             assert model_output.shape == (B, C * 2, *x.shape[2:])
-            model_output, model_var_values = th.split(model_output, C, dim=1)
+            B, F = x.shape
+            model_out, model_var_values = th.split(model_out, F, dim=1)
         eps = model_output
         alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
         alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
@@ -454,7 +455,7 @@ class DenoiseDiffusion():
         return {"sample": sample, "pred_xstart": out["pred_xstart"]}
 
 
-    # @th.no_grad()
+    @th.no_grad()
     def ddim_reverse_sample(
         self,
         model,
@@ -518,6 +519,43 @@ class DenoiseDiffusion():
         if return_intermediates:
             return final, intermediates 
         return final 
+
+
+    @th.no_grad()
+    def ddim_reverse_sample_loop(
+        self,
+        model,
+        shape,
+        x,
+        clip_denoised=True,
+        denoised_fn=None,
+        model_kwargs=None,
+        device=None,
+        progress=False,
+        eta=0.0,
+        return_intermediates=False,
+    ):
+        latent = None
+        if device is None:
+            device = next(model.parameters()).device
+
+        for i in tqdm(range(0,self.num_timesteps),
+                      desc='Sampling latent',
+                      total=self.num_timesteps,
+        ):
+            out = self.ddim_reverse_sample(
+                    model,
+                    x,
+                    t,
+                    clip_denoised=clip_denoised,
+                    denoised_fn=denoised_fn,
+                    cond_fn=cond_fn,
+                    model_kwargs=model_kwargs,
+                    eta=eta,
+                )
+            x = out["sample"]
+        latent = out["sample"]
+        return latent 
 
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
