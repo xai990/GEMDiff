@@ -429,13 +429,13 @@ class DenoiseDiffusion():
         out = self.p_mean_variance(
             model, x, t, clip_denoised=clip_denoised, model_kwargs=model_kwargs
         )
-        # eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
-        model_output = model(x,t,**model_kwargs)
-        if self.model_var_type == ModelVarType.LEARNED:
-            assert model_output.shape == (B, C * 2, *x.shape[2:])
-            B, F = x.shape
-            model_out, model_var_values = th.split(model_out, F, dim=1)
-        eps = model_output
+        eps = self._predict_eps_from_xstart(x, t, out["pred_xstart"])
+        # model_output = model(x,t,**model_kwargs)
+        # if self.model_var_type == ModelVarType.LEARNED:
+        #     B, F = x.shape
+        #     assert model_output.shape == (B, F * 2, *x.shape[2:])
+        #     model_out, model_var_values = th.split(model_out, F, dim=1)
+        # eps = model_output
         alpha_bar = _extract_into_tensor(self.alphas_cumprod, t, x.shape)
         alpha_bar_prev = _extract_into_tensor(self.alphas_cumprod_prev, t, x.shape)
         sigma = (
@@ -504,6 +504,8 @@ class DenoiseDiffusion():
             device = next(model.parameters()).device
         if noise is None:
             seq = th.randn(shape, device=device)
+        else:
+            seq = noise
         intermediates = [seq]
         # tqdm is used to display progress bars in loops or iterable processes
         for i in tqdm(reversed(range(0,self.num_timesteps)),
@@ -531,9 +533,7 @@ class DenoiseDiffusion():
         denoised_fn=None,
         model_kwargs=None,
         device=None,
-        progress=False,
         eta=0.0,
-        return_intermediates=False,
     ):
         latent = None
         if device is None:
@@ -550,7 +550,6 @@ class DenoiseDiffusion():
                     t,
                     clip_denoised=clip_denoised,
                     denoised_fn=denoised_fn,
-                    cond_fn=cond_fn,
                     model_kwargs=model_kwargs,
                     eta=eta,
                 )
