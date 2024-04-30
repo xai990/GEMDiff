@@ -2,7 +2,7 @@ import argparse
 import os 
 import matplotlib.pyplot as plt
 from . import gaussian_diffusion as gd 
-from .gaussian_diffusion import DenoiseDiffusion
+from .respace import SpacedDiffusion, space_timesteps
 import torch as th 
 from .mlp import GPT
 from . import logger 
@@ -27,13 +27,15 @@ def model_and_diffusion_defaults():
             "n_layer": 4,
         },
         "diffusion":{
-            "diffusion_steps": 1000,
+            "diffusion_steps": 4000,
             "noise_schedule": "linear",
             "linear_start": 0.0015,
             "linear_end": 0.0195,
             "log_every_t": 10,
             "schedule_sampler": "uniform",
             "learn_sigma": True,
+            "rescale_timesteps": True, 
+            "timestep_respacing":"",
         }
     }
 
@@ -53,6 +55,8 @@ def create_model_and_diffusion(
     n_layer,
     patch_size,
     learn_sigma,
+    rescale_timesteps,
+    timestep_respacing,
     **kwargs,
 ):
     model = create_model(
@@ -72,6 +76,8 @@ def create_model_and_diffusion(
         linear_end = linear_end,
         log_every_t = log_every_t,
         learn_sigma = learn_sigma,
+        rescale_timesteps = rescale_timesteps,
+        timestep_respacing=timestep_respacing,
     )
     return model, diffusion
 
@@ -107,17 +113,29 @@ def create_diffusion(
     linear_end = 0.0195,
     log_every_t = 10,
     learn_sigma = True, 
-
+    rescale_timesteps = False,
+    timestep_respacing = "",
 ):
     betas = gd.get_named_beta_schedule(noise_schedule, steps, linear_start,linear_end)
     # logger.debug(f"The betas is {betas} -- script")
     loss_type = gd.LossType.MSE
-    return DenoiseDiffusion(
-        betas = betas,
+    if timestep_respacing is None or timestep_respacing == "":
+        timestep_respacing = [steps]
+    # return DenoiseDiffusion(
+    #     betas = betas,
+    #     log_every_t = log_every_t,
+    #     loss_type = loss_type,
+    #     model_mean_type = gd.ModelMeanType.EPSILON,
+    #     model_var_type = gd.ModelVarType.LEARNED if learn_sigma else gd.ModelVarType.FIXED
+    # )
+    return SpacedDiffusion(
+        use_timesteps=space_timesteps(steps, timestep_respacing),
+        betas=betas,
+        model_mean_type=gd.ModelMeanType.EPSILON,
+        model_var_type=gd.ModelVarType.LEARNED if learn_sigma else gd.ModelVarType.FIXED,
         log_every_t = log_every_t,
         loss_type = loss_type,
-        model_mean_type = gd.ModelMeanType.EPSILON,
-        model_var_type = gd.ModelVarType.LEARNED if learn_sigma else gd.ModelVarType.FIXED
+        rescale_timesteps = rescale_timesteps,
     )
 
 

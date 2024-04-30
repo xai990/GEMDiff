@@ -4,9 +4,9 @@ import numpy as np
 import torch as th 
 
 from .gaussian_diffusion import DenoiseDiffusion
+from . import logger 
 
-
-def space_timesteps(num_timesteps, section_coutns):
+def space_timesteps(num_timesteps, section_counts):
     """
     Create a list of timesteps to use from an original diffusion process,
     given the number of timesteps we want to take from equally-sized portions
@@ -28,6 +28,7 @@ def space_timesteps(num_timesteps, section_coutns):
                            DDIM paper.
     :return: a set of diffusion steps from the original process to use.
     """
+    # logger.debug(f"The section_counts info is {section_counts} -- respace")
     if isinstance(section_counts, str):
         if section_counts.startswith("ddim"):
             desired_count = int(section_counts[len("ddim") :])
@@ -38,7 +39,7 @@ def space_timesteps(num_timesteps, section_coutns):
                 f"cannot create exactly {num_timesteps} steps with an integer stride"
             )
         section_counts = [int(x) for x in section_counts.split(",")]
-    size_per = numtimesteps // len(section_counts)
+    size_per = num_timesteps // len(section_counts)
     extra = num_timesteps % len(section_counts)
     start_idx = 0 
     all_steps = []
@@ -53,7 +54,7 @@ def space_timesteps(num_timesteps, section_coutns):
         else:
             frac_stride = (size - 1) / (section_count -1)
         cur_idx = 0.0 
-        taken_steps []
+        taken_steps = []
         for _ in range(section_count):
             taken_steps.append(start_idx + round(cur_idx))
             cur_idx += frac_stride

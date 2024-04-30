@@ -134,7 +134,7 @@ class DenoiseDiffusion():
         model_var_type,
         loss_type,
         log_every_t,
-        resclae_timesteps=False,
+        rescale_timesteps=False,
     ):
         super().__init__()
         
