@@ -134,6 +134,7 @@ class DenoiseDiffusion():
         model_var_type,
         loss_type,
         log_every_t,
+        resclae_timesteps=False,
     ):
         super().__init__()
         
@@ -172,7 +173,7 @@ class DenoiseDiffusion():
         )
         self.posterior_log_variance_clipped = np.log(np.maximum(self.posterior_variance, 1e-20))
         self.log_every_t = log_every_t
-
+        self.rescale_timesteps = rescale_timesteps
 
     def q_mean_variance(self,x_start,t):
         """
@@ -265,7 +266,7 @@ class DenoiseDiffusion():
         
         B, F  = x.shape
         assert t.shape == (B,)
-        model_output = model(x,t,**model_kwargs)
+        model_output = model(x,self._scale_timesteps(t),**model_kwargs)
         
         if self.model_var_type == ModelVarType.LEARNED:
             assert model_output.shape == (B,F*2)
@@ -295,6 +296,13 @@ class DenoiseDiffusion():
             "posterior_log_variance": posterior_log_variance,
             "pred_xstart": x_recon,
         }
+
+
+        def _scale_timesteps(self, t):
+            if self.rescale_timesteps:
+                return t.float() * (1000.0 / self.num_timesteps)
+            return t 
+
 
     @th.no_grad()
     def p_sample(
@@ -380,7 +388,7 @@ class DenoiseDiffusion():
         terms = {}
         noise = th.randn_like(x_start, device = x_start.device)
         x_t = self.q_sample(x_start = x_start, t=t,noise=noise)
-        model_out = model(x_t, t, **model_kwargs)
+        model_out = model(x_t, self._scale_timesteps(t), **model_kwargs)
         
         if self.loss_type == LossType.MSE:
             if self.model_var_type == ModelVarType.LEARNED:
