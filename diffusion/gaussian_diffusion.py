@@ -298,10 +298,10 @@ class DenoiseDiffusion():
         }
 
 
-        def _scale_timesteps(self, t):
-            if self.rescale_timesteps:
-                return t.float() * (1000.0 / self.num_timesteps)
-            return t 
+    def _scale_timesteps(self, t):
+        if self.rescale_timesteps:
+            return t.float() * (1000.0 / self.num_timesteps)
+        return t 
 
 
     @th.no_grad()
