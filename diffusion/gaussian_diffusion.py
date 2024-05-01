@@ -267,7 +267,6 @@ class DenoiseDiffusion():
         B, F  = x.shape
         assert t.shape == (B,)
         model_output = model(x,self._scale_timesteps(t),**model_kwargs)
-        
         if self.model_var_type == ModelVarType.LEARNED:
             assert model_output.shape == (B,F*2)
             model_output, model_var_values = th.split(model_output, F, dim=1)

@@ -148,13 +148,19 @@ class CustomGeneDataset(Dataset):
         # read the gene expression 
         df = pd.read_csv(genepath, sep='\t', index_col=0)
         logger.log(f"loaded input data has {df.shape[1]} genes, {df.shape[0]} samples")
-        if gene_set:
-            geneset = read_gmt_file(gene_set)
-            logger.log(f"The input gene set is {geneset['gene_set']}, contains {len(geneset['genes'])} genes")
-            # logger.debug(f"The intersection is : {df.columns} -- dataset")
-            # logger.debug(f"The intersection is : {df.columns} -- dataset")
-            df = df[df.columns.intersection(geneset['genes'])]
+        if gene_set is not None:
+            if gene_set.lower().endswith('.gmt'):
+                geneset = read_gmt_file(gene_set)
+                logger.log(f"The input gene set is {geneset['gene_set']}, contains {len(geneset['genes'])} genes")
+                # logger.debug(f"The intersection is : {df.columns} -- dataset")
+                # logger.debug(f"The intersection is : {df.columns} -- dataset")
+                df = df[df.columns.intersection(geneset['genes'])]
+            if gene_set.lower().endswith('.tsv'):
+                geneset = pd.read_csv(gene_set, delimiter='\t')
+                geneset = list(set(geneset["#node1"]))
+                df = df[df.columns.intersection(geneset)]
             logger.log(f"loaded selected data has {df.shape[1]} genes, {df.shape[0]} samples")
+            
         gene_features = df.values
     
         assert os.path.exists(labelpath), "gene label path: {} does not exist.".format(labelpath)
