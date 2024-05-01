@@ -19,7 +19,7 @@ from diffusion.train_util import get_blob_logdir
 import datetime
 import os 
 import matplotlib.pyplot as plt
-
+from copy import deepcopy
 
 def main(args):
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
@@ -51,7 +51,7 @@ def main(args):
     # showdata(dataset,dir = dir_out, schedule_plot = "origin",)     
     if dataset[:][0].shape[-1] != config.model.feature_size:
         config.model.feature_size =  dataset[:][0].shape[-1]
-        logger.log(f"{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
+        logger.log(f"*{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
     
     ## need to reconsider the patch size 
     ## here is a hard way, make the patch size is equal to the feature size
@@ -66,7 +66,8 @@ def main(args):
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     model.to(dist_util.dev())
     logger.info(model)
-    
+    ema = deepcopy(model).to(device)  # Create an EMA of the model for use after training
+    requires_grad(ema, False)
     # forward process plot 
     # showdata(dataset,
     #          dir = dir_out,
@@ -77,6 +78,10 @@ def main(args):
     
     logger.log("train the model:")  
     optimizer = th.optim.Adam(model.parameters(),lr=config.train.lr)
+    update_ema(ema, model, decay=0)  # Ensure EMA is initialized with synced weights
+    model.train()  # important! This enables embedding dropout for classifier-free guidance
+    ema.eval()  # EMA model should always be in eval mode
+
     for epoch in range(config.train.num_epoch):
         for idx,batch_x in enumerate(loader):
             batch, cond = batch_x
@@ -90,6 +95,8 @@ def main(args):
             loss.backward()
             th.nn.utils.clip_grad_norm_(model.parameters(),1.)
             optimizer.step()
+            update_ema(ema, model)
+
 
         if (epoch % config.train.log_interval == 0):
             logger.log(f"The loss is : {loss} at {epoch} epoch")
@@ -98,6 +105,7 @@ def main(args):
             if dist.get_rank() == 0:
                 checkpoint = {
                     "model": model.state_dict(),
+                    "ema": ema.state_dict(),
                     "opt": optimizer.state_dict(),
                     "conf": config
                 }
@@ -134,9 +142,32 @@ def create_config():
     return defaults  
 
 
+@torch.no_grad()
+def update_ema(ema_model, model, decay=0.9999):
+    """
+    Step the EMA model towards the current model.
+    """
+    ema_params = OrderedDict(ema_model.named_parameters())
+    model_params = OrderedDict(model.named_parameters())
+
+    for name, param in model_params.items():
+        # Consider applying only to params that require_grad to avoid small numerical changes of pos_embed
+        ema_params[name].mul_(decay).add_(param.data, alpha=1 - decay)
+
+
+def requires_grad(model, flag=True):
+    """
+    Set requires_grad flag for all parameters in a model.
+    """
+    for p in model.parameters():
+        p.requires_grad = flag
+
+
+
+
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/mrna_128.yaml")
+    parser.add_argument("--config", type=str, default="configs/mrna_8.yaml")
     parser.add_argument("--dir", type=str, default="log/")
     parser.add_argument("--gene_set", type=str, default=None)
     args = parser.parse_args()
