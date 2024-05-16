@@ -35,13 +35,13 @@ def load_data(
                     execption will be raised. 
     """
 
-    if data_dir == None:
-        s_curve, _ = make_s_curve(10**3,noise=0.1)
-        s_curve = s_curve[:,[0,2]]/10.0
-        dataset = th.Tensor(s_curve).float()
-        logger.log(f"Loading dataset from example data and the shape of the dataset is: {dataset.size()}")
-        dataset = SklearnDataset(dataset)
-        return dataset 
+    # if data_dir == None:
+    #     s_curve, _ = make_s_curve(10**3,noise=0.1)
+    #     s_curve = s_curve[:,[0,2]]/10.0
+    #     dataset = th.Tensor(s_curve).float()
+    #     logger.log(f"Loading dataset from example data and the shape of the dataset is: {dataset.size()}")
+    #     dataset = SklearnDataset(dataset)
+    #     return dataset 
     
     if not data_dir:
         raise ValueError("unspecified data directory")
@@ -149,16 +149,16 @@ class CustomGeneDataset(Dataset):
         df = pd.read_csv(genepath, sep='\t', index_col=0)
         logger.log(f"loaded input data has {df.shape[1]} genes, {df.shape[0]} samples")
         if gene_set is not None:
-            if gene_set.lower().endswith('.gmt'):
-                geneset = read_gmt_file(gene_set)
-                logger.log(f"The input gene set is {geneset['gene_set']}, contains {len(geneset['genes'])} genes")
-                # logger.debug(f"The intersection is : {df.columns} -- dataset")
-                # logger.debug(f"The intersection is : {df.columns} -- dataset")
-                df = df[df.columns.intersection(geneset['genes'])]
             if gene_set.lower().endswith('.tsv'):
                 geneset = pd.read_csv(gene_set, delimiter='\t')
                 geneset = list(set(geneset["#node1"]))
                 df = df[df.columns.intersection(geneset)]
+            else: # else include gmt and pure -- need to specific the case in the future to avoid protential error 
+                geneset = read_file(gene_set)
+                logger.log(f"The input gene set is {geneset['gene_set']}, contains {len(geneset['genes'])} genes")
+                # logger.debug(f"The intersection is : {df.columns} -- dataset")
+                # logger.debug(f"The intersection is : {df.columns} -- dataset")
+                df = df[df.columns.intersection(geneset['genes'])]
             logger.log(f"loaded selected data has {df.shape[1]} genes, {df.shape[0]} samples")
             
         gene_features = df.values
@@ -312,13 +312,21 @@ def datascalar(dataset):
     return mins, maxs 
 
 
-def read_gmt_file(filename):
+def read_file(filename):
     gene_sets = {}
-    with open(filename, 'r') as file:
-        for line in file:
-            parts = line.strip().split('\t')
-            gene_set_name = parts[0]
-            # description = parts[1]
-            genes = parts[2:]
-            gene_sets = {'gene_set':gene_set_name, 'genes': genes}
+    if os.path.splitext(filename)[1] == '.gmt':
+        with open(filename, 'r') as file:
+            for line in file:
+                parts = line.strip().split('\t')
+                gene_set_name = parts[0]
+                # description = parts[1]
+                genes = parts[2:]
+                gene_sets = {'gene_set':gene_set_name, 'genes': genes}
+    else:
+        with open(filename, 'r') as file:
+            for line in file:
+                parts = line.strip().split('\t')
+                gene_set_name = parts[0]
+                genes = parts[1:]
+                gene_sets = {'gene_set':gene_set_name, 'genes': genes}
     return gene_sets
