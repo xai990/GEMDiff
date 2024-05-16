@@ -155,11 +155,14 @@ def showdata(dataset,
             num_shows=20,
             cols = 10,
             synthesis_data = None,
+            n_neighbors = 15,
+            min_dist = 0.1,
+            random_state = 41,
     ):
     # dir to save the plot image
     assert isinstance(dir,str)
     os.makedirs(dir,exist_ok=True)
-    reducer = umap.UMAP(n_neighbors=60, min_dist=0.3, n_components=2, random_state=41)
+    reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
     added_labels = set()
     if schedule_plot == "forward": 
         colors = ['blue','orange']
@@ -198,11 +201,27 @@ def showdata(dataset,
         # fig,ax = plt.subplots()      
         data , y = dataset[:][0], dataset[:][1]['y']
         # Define the range of parameters you want to explore
-        n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
-        min_dist_options = [0.1, 0.3, 0.6, 0.9]
+        # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
+        # min_dist_options = [0.1, 0.3, 0.6, 0.9]
         color_map = ['blue','orange']
-        
+        fig,ax = plt.subplots()
         labels = ['normal','tumor']
+        embedding = reducer.fit_transform(data)
+        for ele in y:
+            index_mask = (ele==y)
+            if np.any(index_mask):
+                label = labels[ele] if labels[ele] not in added_labels else None
+                ax.scatter(embedding[index_mask,0],
+                            embedding[index_mask,1],
+                            label = label, 
+                            color=color_map[ele],
+                            edgecolor='white')
+                if label:
+                    added_labels.add(label)
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([])
+        
+        """
         # Setup the subplot grid
         fig, axes = plt.subplots(nrows=len(n_neighbors_options), ncols=len(min_dist_options), figsize=(15, 15))
         for i, n_neighbors in enumerate(n_neighbors_options):
@@ -234,10 +253,13 @@ def showdata(dataset,
                 ax.axes.xaxis.set_ticklabels([])
                 ax.axes.yaxis.set_ticklabels([])
                 # ax.axis('off')
-        handles, labels = axes[0, 0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc='upper left', ncol=3)
-        fig.text(0.5, 1,'min_dist',ha='center',)
-        fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
+        """
+        # handles, labels = axes[0, 0].get_legend_handles_labels()
+        # handles, labels = ax.get_legend_handles_labels()
+        # fig.legend(handles, labels, loc='upper left', ncol=3)
+        # fig.text(0.5, 1,'min_dist',ha='center',)
+        # fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
+        plt.legend(loc="upper left")
         plt.tight_layout()
         plt.subplots_adjust(wspace=0., hspace=0.)
         
@@ -260,12 +282,43 @@ def showdata(dataset,
         data_f, y_f = synthesis_data["arr_0"], synthesis_data["arr_1"]
         # stack the data together for overarching patterns 
         data_merged = np.vstack([data_r,data_f])
-        
+        fig,ax = plt.subplots()
         # create the umap parameters sweep plot 
-        n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
-        min_dist_options = [0.1, 0.3, 0.6, 0.9]
+        # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
+        # min_dist_options = [0.1, 0.3, 0.6, 0.9]
         color_map = ['blue','orange','cyan','blueviolet']
         labels = ['real_normal','real_tumor','fake_normal', 'fake_turmor']
+        
+        q_i = reducer.fit_transform(data_merged)
+        q_r = q_i[:len(y_r)]
+        q_f = q_i[len(y_r):]
+        # Plot
+        # added_labels.clear()
+        for ele in y_r:
+            index_mask = (ele==y_r)
+            if np.any(index_mask):
+                label = labels[ele] if labels[ele] not in added_labels else None
+                ax.scatter(q_r[index_mask,0],
+                            q_r[index_mask,1],
+                            label = label, 
+                            color=color_map[ele],
+                            edgecolor='white')
+                if label:
+                    added_labels.add(label)
+        for ele in y_f:
+            index_mask = (ele==y_f)
+            if np.any(index_mask):
+                label = labels[ele+2] if labels[ele+2] not in added_labels else None
+                ax.scatter(q_f[index_mask,0],
+                            q_f[index_mask,1],
+                            label = label, 
+                            color=color_map[ele+2],
+                            edgecolor='white')
+                if label:
+                    added_labels.add(label)
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([])
+        """
         # Setup the subplot grid
         fig, axes = plt.subplots(nrows=len(n_neighbors_options), ncols=len(min_dist_options), figsize=(15, 15))
         for i, n_neighbors in enumerate(n_neighbors_options):
@@ -312,10 +365,12 @@ def showdata(dataset,
                 ax.axes.xaxis.set_ticklabels([])
                 ax.axes.yaxis.set_ticklabels([])
                 # ax.axis('off')
-        handles, labels = axes[0, 0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc='upper left', ncol=3)
-        fig.text(0.5, 1,'min_dist',ha='center',)
-        fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
+        """
+        # handles, labels = axes[0, 0].get_legend_handles_labels()
+        # handles, labels = ax.get_legend_handles_labels()
+        # fig.legend(handles, labels, loc='upper left', ncol=3)
+        # fig.text(0.5, 1,'min_dist',ha='center',)
+        # fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
         plt.tight_layout()
         plt.subplots_adjust(wspace=0., hspace=0.)
         # plt.show()
