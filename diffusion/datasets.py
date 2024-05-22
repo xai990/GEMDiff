@@ -297,12 +297,12 @@ class SklearnDataset(Dataset):
 
 
 class Genedifferential():
-    def __init__(self, index = [9583,3605]):
-        self.index = index
+    def __init__(self, idx = [9583,3605]):
+        self.idx = idx
   
     def __call__(self, sample):
-        return sample[:,self.index]
-        # return sample[:,:,self.index]
+        return sample[:,self.idx]
+        # return sample[:,:,self.idx]
 
     
 
@@ -330,3 +330,24 @@ def read_file(filename):
                 genes = parts[1:]
                 gene_sets = {'gene_set':gene_set_name, 'genes': genes}
     return gene_sets
+
+
+def balance_sample_screen(dataset, n, cond):
+    """ 
+    randomly select equal number of normal and tumor samples from dataset
+    
+    :param dataset: data array 
+    :param n : number of samples 
+    
+    return: n number of sampels from dataset 
+    """
+    data , y = dataset[:][0], dataset[:][1]['y']
+    
+    datasample = np.array(data[ y == cond]).astype(float)
+    np.random.seed(41) # reproduceable 
+    idx= np.random.randint(0,datasample.shape[0], n)
+    out_dict = {}
+    out_dict["y"] = np.array(y[y == cond], dtype=np.int64)
+    return np.array(datasample[idx], dtype=np.float32), out_dict
+
+
