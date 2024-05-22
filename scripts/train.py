@@ -16,13 +16,14 @@ from diffusion.resample import create_named_schedule_sampler
 import torch as th 
 import numpy as np 
 from diffusion.train_util import get_blob_logdir
-import datetime
 import os 
 import matplotlib.pyplot as plt
 from copy import deepcopy
+from collections import OrderedDict
+
+
 
 def main(args):
-    now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     logger.configure(dir=args.dir)
     logger.log("**********************************")
     logger.log("log configure")
@@ -41,17 +42,21 @@ def main(args):
     
     # change the size of the data 
     logger.info(f"The size of dataset: {dataset[:][0].shape}")
+    # assert the task: augmentation or perturbation
+    # pertubation will be done with balance data -- equal number of normal an d tumor 
+    # if args.task == "perturb-N":
+    #     dataset = balance_sample_screen(dataset, config.data.samples, 0)
+    # elif args.task == "perturb-T":
+    #     dataset = balance_sample_screen(dataset, config.data.samples, 1)
+    
+    # logger.debug(f"The size of dataset is :{dataset}")
+       
     loader = data_loader(dataset,
                     batch_size=config.train.batch_size,            
-    )
-    
-    # configure the dir out 
-    dir_out = os.path.join(config.data.dir_out, now,)
-    # plot the shape of the data 
-    # showdata(dataset,dir = dir_out, schedule_plot = "origin",)     
-    if dataset[:][0].shape[-1] != config.model.feature_size:
-        config.model.feature_size =  dataset[:][0].shape[-1]
-        logger.log(f"*{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
+    ) 
+    # if dataset[:][0].shape[-1] != config.model.feature_size:
+        # config.model.feature_size =  dataset[:][0].shape[-1]
+    #     logger.log(f"*{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
     
     ## need to reconsider the patch size 
     ## here is a hard way, make the patch size is equal to the feature size
@@ -66,15 +71,8 @@ def main(args):
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     model.to(dist_util.dev())
     logger.info(model)
-    ema = deepcopy(model).to(device)  # Create an EMA of the model for use after training
+    ema = deepcopy(model).to(dist_util.dev())  # Create an EMA of the model for use after training
     requires_grad(ema, False)
-    # forward process plot 
-    # showdata(dataset,
-    #          dir = dir_out,
-    #          schedule_plot="forward",
-    #          diffusion=diffusion, 
-    #          num_steps = config.diffusion.diffusion_steps,
-    # )
     
     logger.log("train the model:")  
     optimizer = th.optim.Adam(model.parameters(),lr=config.train.lr)
@@ -114,7 +112,6 @@ def main(args):
                 th.save(checkpoint, checkpoint_path)
                 logger.log(f"Saved checkpoint to {checkpoint_path}")
     
-    
     logger.log("completed")
 
 
@@ -126,23 +123,24 @@ def create_config():
             "data_dir": None,
             "dir_out": "results",
             "gene_selection": None,
+            "samples":124,
         },
         "train":{
             "microbatch": 16,
             "log_interval": 500,
-            "save_interval": 10000,
+            "save_interval": 8000,
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":10001
-        }
+            "num_epoch":8001
+        },
     }
     defaults.update(model_and_diffusion_defaults())
    
     return defaults  
 
 
-@torch.no_grad()
+@th.no_grad()
 def update_ema(ema_model, model, decay=0.9999):
     """
     Step the EMA model towards the current model.
@@ -167,8 +165,9 @@ def requires_grad(model, flag=True):
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/mrna_8.yaml")
-    parser.add_argument("--dir", type=str, default="log/")
+    parser.add_argument("--config", type=str, default="configs/mrna_16.yaml")
+    parser.add_argument("--dir", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default=None)
+    # parser.add_argument("--task", type=str, default="augment")
     args = parser.parse_args()
     main(args)
