@@ -49,7 +49,7 @@ def main(args):
                 low=0, high=2, size=(config.sample.batch_size,), device=dist_util.dev()
             )
             model_kwargs["y"] = classes
-        sample_fn = diffusion.p_sample_loop
+        sample_fn = diffusion.p_sample_loop if not config.sample.use_ddim else diffusion.ddim_sample_loop
         # logger.debug(f"The classes are {classes}")
         sample = sample_fn(
             model,
@@ -105,6 +105,7 @@ def create_config():
             "num_samples": 800,
             "model_path": 250,
             "clip_denoised": False,
+            "use_ddim": True,
         }
     }
     
