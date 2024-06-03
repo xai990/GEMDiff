@@ -332,7 +332,7 @@ def read_file(filename):
     return gene_sets
 
 
-def balance_sample_screen(dataset, n, cond):
+def balance_sample_screen(dataset, n):
     """ 
     randomly select equal number of normal and tumor samples from dataset
     
@@ -343,11 +343,13 @@ def balance_sample_screen(dataset, n, cond):
     """
     data , y = dataset[:][0], dataset[:][1]['y']
     
-    datasample = np.array(data[ y == cond]).astype(float)
+    dataset_N = np.array(data[ y == 0])
+    dataset_T = np.array(data[ y == 1])
     np.random.seed(41) # reproduceable 
-    idx= np.random.randint(0,datasample.shape[0], n)
-    out_dict = {}
-    out_dict["y"] = np.array(y[y == cond], dtype=np.int64)
-    return np.array(datasample[idx], dtype=np.float32), out_dict
-
+    idx_N= np.random.randint(0,dataset_N.shape[0], n)
+    idx_T= np.random.randint(0,dataset_T.shape[0], n)
+    # out_dict = {}
+    # out_dict["y"] = np.array(y[y == cond], dtype=np.int64)
+    # return np.array(datasample[idx], dtype=np.float32), out_dict
+    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
 

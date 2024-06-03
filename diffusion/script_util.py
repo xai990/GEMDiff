@@ -220,7 +220,72 @@ def showdata(dataset,
                     added_labels.add(label)
         ax.axes.xaxis.set_ticklabels([])
         ax.axes.yaxis.set_ticklabels([])
+        plt.legend(loc="upper left")
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=0., hspace=0.)
         
+        """
+        q_i = reducer.fit_transform(data)
+        for ele in y:
+            index_mask = (ele==y)
+            if np.any(index_mask):
+                ax.scatter(q_i[index_mask,0],
+                            q_i[index_mask,1],
+                            label = ele, 
+                            color=colors[ele],
+                            edgecolor='white')
+        ax.axis('off')
+        """
+        plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
+        plt.close()
+    elif schedule_plot == "balance":
+        samples = 125 # the normal samples are 125 
+        # fig,ax = plt.subplots()      
+        data , y = dataset[:][0], dataset[:][1]['y']
+        # Define the range of parameters you want to explore
+        # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
+        # min_dist_options = [0.1, 0.3, 0.6, 0.9]
+        color_map = ['blue','orange']
+        fig,axs = plt.subplots(1,2)
+        labels = ['normal','tumor']
+        embedding = reducer.fit_transform(data)
+        np.random.seed(41)
+        # separate the normal data 
+        dataset_N = th.Tensor(data[ y == 0]).float()
+        dataset_T = th.Tensor(data[ y == 1]).float() 
+        idx_N = np.random.randint(0,dataset_N.shape[0], samples)
+        idx_T = np.random.randint(0,dataset_T.shape[0], samples)
+        # randomly select the same amount of normal and tumor sample 
+        dataset_N = dataset_N[idx_N] 
+        dataset_T = dataset_T[idx_T]
+        titles = ["125 normal vs 663 tumor", "125 normal vs 125 tumor"]
+        for ele in y:
+            index_mask = (ele==y)
+            if np.any(index_mask):
+                label = labels[ele] if labels[ele] not in added_labels else None
+                axs[0].scatter(embedding[index_mask,0],
+                            embedding[index_mask,1],
+                            label = label, 
+                            color=color_map[ele],
+                            edgecolor='white')
+                if label:
+                    added_labels.add(label)
+        axs[0].axis('off')
+        axs[0].set_title(titles[0])
+        data_merge = th.vstack([dataset_N,dataset_T])
+        x_ump = reducer.fit_transform(data_merge)
+        q_i = x_ump[:len(dataset_N)]
+        q_x = x_ump[len(dataset_N):]
+        axs[1].scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
+        axs[1].scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
+        axs[1].set_title(titles[1])
+        axs[1].axis('off')
+        plt.legend(loc="upper left")
+        # ax.axes.xaxis.set_ticklabels([])
+        # ax.axes.yaxis.set_ticklabels([])
+        plt.tight_layout()
+        plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
+        plt.close()
         """
         # Setup the subplot grid
         fig, axes = plt.subplots(nrows=len(n_neighbors_options), ncols=len(min_dist_options), figsize=(15, 15))
@@ -259,24 +324,7 @@ def showdata(dataset,
         # fig.legend(handles, labels, loc='upper left', ncol=3)
         # fig.text(0.5, 1,'min_dist',ha='center',)
         # fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
-        plt.legend(loc="upper left")
-        plt.tight_layout()
-        plt.subplots_adjust(wspace=0., hspace=0.)
-        
-        """
-        q_i = reducer.fit_transform(data)
-        for ele in y:
-            index_mask = (ele==y)
-            if np.any(index_mask):
-                ax.scatter(q_i[index_mask,0],
-                            q_i[index_mask,1],
-                            label = ele, 
-                            color=colors[ele],
-                            edgecolor='white')
-        ax.axis('off')
-        """
-        plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
-        plt.close()
+       
     elif schedule_plot == "reverse":
         data_r , y_r = dataset[:][0], dataset[:][1]['y']
         data_f, y_f = synthesis_data["arr_0"], synthesis_data["arr_1"]
@@ -411,6 +459,21 @@ def showdata(dataset,
         # Show the figure
         fig.write_html(f"{dir}/UMAP_plot_realvsfake_{data_r.shape[-1]}.html")
         """
+    elif schedule_plot == "perturb":
+        dataset_N, dataset_T, target = dataset 
+        x_merged = np.vstack([dataset_N,dataset_T, target.cpu().numpy()])
+        x_ump = reducer.fit_transform(x_merged)
+        q_n = x_ump[:len(dataset_N)]
+        q_t = x_ump[len(dataset_N):len(dataset_N)*2]
+        q_x = x_ump[len(dataset_N)*2:]
+        fig,ax = plt.subplots()      
+        ax.scatter(q_n[:,0],q_n[:,1],color = 'blue',edgecolor='white',label="real normal")
+        ax.scatter(q_t[:,0],q_t[:,1],color = 'orange',edgecolor='white',label="real tumor")
+        ax.scatter(q_x[:,0],q_x[:,1],color = 'cyan',edgecolor='white',label="perturb tumor")
+        plt.legend(loc="upper right")
+        ax.axis('off')
+        plt.savefig(f"{dir}/UMAP_plot_perturb_{dataset_N.shape[-1]}.png")
+        plt.close()
     else:
         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
 
