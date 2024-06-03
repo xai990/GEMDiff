@@ -51,7 +51,7 @@ def load_data(
     # logger.debug(f"The information of {all_files} -- datasets")
 
     train_dataset = CustomGeneDataset(all_files[1],
-                                all_files[2],
+                                all_files[3],
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
@@ -62,7 +62,7 @@ def load_data(
                                 class_cond =class_cond,
     )
     test_dataset = CustomGeneDataset(all_files[0],
-                                all_files[3],
+                                all_files[2],
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
