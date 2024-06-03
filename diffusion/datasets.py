@@ -49,7 +49,6 @@ def load_data(
     all_files = _list_files_recursively(data_dir)
     # set the condition later
     # logger.debug(f"The information of {all_files} -- datasets")
-
     train_dataset = CustomGeneDataset(all_files[1],
                                 all_files[3],
                                 gene_set = gene_set,
@@ -94,7 +93,6 @@ def data_loader(dataset, batch_size=32,deterministic=False):
         )
     
     return loader
-    
 
 
 
@@ -316,19 +314,19 @@ def read_file(filename):
     return gene_sets
 
 
-def balance_sample_screen(dataset, n):
+def balance_sample_screen(dataset):
     """ 
     randomly select equal number of normal and tumor samples from dataset
     
     :param dataset: data array 
-    :param n : number of samples 
-    
+
     return: n number of sampels from dataset 
     """
     data , y = dataset[:][0], dataset[:][1]['y']
     
     dataset_N = np.array(data[ y == 0])
     dataset_T = np.array(data[ y == 1])
+    n = min(dataset_N.shape[0],dataset_T.shape[0])
     np.random.seed(41) # reproduceable 
     idx_N= np.random.randint(0,dataset_N.shape[0], n)
     idx_T= np.random.randint(0,dataset_T.shape[0], n)

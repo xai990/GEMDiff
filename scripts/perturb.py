@@ -37,8 +37,8 @@ def main(args):
                     gene_set = args.gene_set,
     )
     # balance the train and test data 
-    train_N, train_T = balance_sample_screen(train_data, config.perturb.samples)
-    test_N, test_T = balance_sample_screen(test_data, config.perturb.samples)
+    train_N, train_T = balance_sample_screen(train_data)
+    test_N, test_T = balance_sample_screen(test_data)
     # set the model param
     
     logger.log("creating model and diffusion ... ")
@@ -54,14 +54,13 @@ def main(args):
     # ema = deepcopy(model).to(dist_util.dev())  # Create an EMA of the model for use after training
     # requires_grad(ema, False)
     
-    """
     model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     model_N.to(dist_util.dev())
     logger.info(model_N)
     ema_N = deepcopy(model_N).to(dist_util.dev())  # Create an EMA of the model for use after training
     requires_grad(ema_N, False)
     logger.log("train the target model:")  
-    loader_N = data_loader(dataset_N,
+    loader_N = data_loader(train_N,
                     batch_size=config.train.batch_size,            
     ) 
     optimizer_N = th.optim.Adam(model_N.parameters(),lr=config.train.lr)
@@ -158,6 +157,7 @@ def main(args):
     ema_T.load_state_dict(state_dict["ema"])
     ema_T.to(dist_util.dev())
     ema_T.eval()
+    """
     logger.log("pertubing the source to target")
     noise_T = diffusion.ddim_reverse_sample_loop(
         ema_T,
