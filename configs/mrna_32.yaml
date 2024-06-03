@@ -1,0 +1,32 @@
+data:
+  data_dir: "datasets/"
+  dir_out: "results"
+  
+model:
+  class_cond: True
+  dropout: 0.0
+  n_layer: 4
+  patch_size: 32
+  n_head: 4
+  feature_size: 32
+  
+diffusion:
+  noise_schedule: cosine
+  # linear_start: -6 
+  # linear_end: 6
+  diffusion_steps: 1000
+  log_every_t: 10
+  
+train:
+  lr: 0.00003
+  # num_epoch: 1
+  batch_size: 64
+  schedule_plot: False
+  # log_interval: 100
+  # save_interval: 1
+
+sample:
+  model_path: "log/2024-03-27-13-19/model08000.pt"
+
+plot:
+  file_path: "results/2024-03-27T15-25-59/samples_800x8.npz"
