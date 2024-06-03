@@ -239,7 +239,7 @@ def showdata(dataset,
         plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
         plt.close()
     elif schedule_plot == "balance":
-        samples = 125 # the normal samples are 125 
+        # samples = 125 # the normal samples are 125 
         # fig,ax = plt.subplots()      
         data , y = dataset[:][0], dataset[:][1]['y']
         # Define the range of parameters you want to explore
@@ -253,6 +253,7 @@ def showdata(dataset,
         # separate the normal data 
         dataset_N = th.Tensor(data[ y == 0]).float()
         dataset_T = th.Tensor(data[ y == 1]).float() 
+        sample = dataset_N.shape[0]
         idx_N = np.random.randint(0,dataset_N.shape[0], samples)
         idx_T = np.random.randint(0,dataset_T.shape[0], samples)
         # randomly select the same amount of normal and tumor sample 

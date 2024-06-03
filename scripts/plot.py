@@ -26,7 +26,7 @@ def main(args):
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
     # _, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     # load data 
-    dataset = load_data(data_dir = config.data.data_dir,
+    _, dataset = load_data(data_dir = config.data.data_dir,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,

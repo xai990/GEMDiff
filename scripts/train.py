@@ -34,14 +34,17 @@ def main(args):
     config = OmegaConf.merge(basic_conf, input_conf)
     
     # load data 
-    dataset = load_data(data_dir = config.data.data_dir,
+    train_data, test_data = load_data(data_dir = config.data.data_dir,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
     )
+    logger.info(f"The size of train dataset: {train_data[:][0].shape}")
+    logger.info(f"The size of test dataset: {test_data[:][0].shape}")
+
     
     # change the size of the data 
-    logger.info(f"The size of dataset: {dataset[:][0].shape}")
+    # logger.info(f"The size of dataset: {dataset[:][0].shape}")
     # assert the task: augmentation or perturbation
     # pertubation will be done with balance data -- equal number of normal an d tumor 
     # if args.task == "perturb-N":
@@ -51,7 +54,7 @@ def main(args):
     
     # logger.debug(f"The size of dataset is :{dataset}")
        
-    loader = data_loader(dataset,
+    loader = data_loader(train_data,
                     batch_size=config.train.batch_size,            
     ) 
     # if dataset[:][0].shape[-1] != config.model.feature_size:
@@ -112,7 +115,7 @@ def main(args):
                 th.save(checkpoint, checkpoint_path)
                 logger.log(f"Saved checkpoint to {checkpoint_path}")
     
-    logger.log("completed")
+    logger.log("training process completed")
 
 
 

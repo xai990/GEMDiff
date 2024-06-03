@@ -48,9 +48,21 @@ def load_data(
     
     all_files = _list_files_recursively(data_dir)
     # set the condition later
-    # logger.debug(f"The information of {gene_selection} -- datasets")
-    dataset = CustomGeneDataset(all_files[0],
-                                all_files[1],
+    # logger.debug(f"The information of {all_files} -- datasets")
+
+    train_dataset = CustomGeneDataset(all_files[1],
+                                all_files[2],
+                                gene_set = gene_set,
+                                transform= GeneDataTransform(),
+                                target_transform=GeneLabelTransform(),
+                                scaler=True,
+                                filter=data_filter,
+                                random_selection=(GeneRandom(seed=SEED,features=gene_selection) if gene_selection else None),
+                                dge = (Genedifferential() if dge else None), 
+                                class_cond =class_cond,
+    )
+    test_dataset = CustomGeneDataset(all_files[0],
+                                all_files[3],
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
@@ -62,40 +74,12 @@ def load_data(
     )
     
     
-    
-    # if gene_set 
-    # if gene_selection is not None:
-    #     dataset = CustomGeneDataset(all_files[0],
-    #                                 all_files[1],
-    #                                 transform= GeneDataTransform(),
-    #                                 target_transform=GeneLabelTransform(),
-    #                                 scaler=True,
-    #                                 filter=data_filter,
-    #                                 random_selection=GeneRandom(seed=SEED,features=gene_selection),
-    #     )
-    # elif dge:
-    #     dataset = CustomGeneDataset(all_files[0],
-    #                                 all_files[1],
-    #                                 transform= GeneDataTransform(),
-    #                                 target_transform=GeneLabelTransform(),
-    #                                 scaler=True,
-    #                                 filter=data_filter,
-    #                                 dge=Genedifferential(),
-    #                                 class_cond =class_cond,
-    #     )
-    
-    # else:
-    #     dataset = CustomGeneDataset(all_files[0],
-    #                                 all_files[1],
-    #                                 transform= GeneDataTransform(),
-    #                                 target_transform=GeneLabelTransform(),
-    #                                 scaler=True,
-    #                                 filter=data_filter,
-    #     )
+   
     # logger.log(f"After data pre-processing, the dataset contains {dataset[0]}")
-    logger.log(f"After data pre-processing, the dataset contains {dataset[:][0].shape[-1]} gene.")
+    logger.log(f"After data pre-processing, the dataset contains {train_dataset[:][0].shape[-1]} gene.")
     #logger.log("The gene selection is fixed random. Have not set a bool value for examine whether fixed random or true random")
-    return dataset
+    
+    return train_dataset, test_dataset
 
 
 def data_loader(dataset, batch_size=32,deterministic=False):
