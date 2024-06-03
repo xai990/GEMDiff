@@ -60,6 +60,8 @@ def main(args):
     ema_N = deepcopy(model_N).to(dist_util.dev())  # Create an EMA of the model for use after training
     requires_grad(ema_N, False)
     logger.log("train the target model:")  
+    
+    schedule_sampler = create_named_schedule_sampler(config.train.schedule_sampler, diffusion)
     loader_N = data_loader(train_N,
                     batch_size=config.train.batch_size,            
     ) 
@@ -72,8 +74,9 @@ def main(args):
             batch = batch_x
             # y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
             batch_size = batch.shape[0]
-            t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
-            t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
+            # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
+            # t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
+            t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
             losses = diffusion.loss(model_N,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=None)
             loss = (losses["loss"]).mean()
             optimizer_N.zero_grad()
@@ -117,8 +120,7 @@ def main(args):
             batch = batch_x # not consider the label info for now 
             # y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
             batch_size = batch.shape[0]
-            t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
-            t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
+            t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
             losses = diffusion.loss(model_T,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=None)
             loss = (losses["loss"]).mean()
             optimizer_N.zero_grad()
@@ -195,7 +197,8 @@ def create_config():
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":8001
+            "num_epoch":8001,
+            "schedule_sampler":"uniform",
         },
         "perturb":{
             # "samples":124,
