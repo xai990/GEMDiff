@@ -38,7 +38,7 @@ def main(args):
     )
     # balance the train and test data 
     train_N, train_T = balance_sample_screen(train_data)
-    # test_N, test_T = balance_sample_screen(test_data)
+    test_N, test_T = balance_sample_screen(test_data)
     # set the model param
     
     logger.log("creating model and diffusion ... ")
@@ -186,6 +186,7 @@ def main(args):
     showdata(plotdata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
     
     logger.log("filter the perturbed gene -- 1 std")
+    # gene_index = filter_gene(test_T, target.cpu().numpy())
     gene_index = filter_gene(train_T, target.cpu().numpy())
     logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
     logger.log("pertubing complete")
