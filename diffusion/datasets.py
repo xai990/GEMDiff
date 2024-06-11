@@ -171,7 +171,7 @@ class CustomGeneDataset(Dataset):
         self.columns = columns
         self.gene = gene
         self.label = label
-        self.columns = columns
+        
 
     def __len__(self):
         return len(self.gene)
