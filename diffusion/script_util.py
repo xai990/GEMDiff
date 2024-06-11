@@ -518,7 +518,7 @@ def filter_gene(real, perturb):
     assert real.shape == perturb.shape, f'The datashape of real and perturbed are different'
     # Calculate the difference between the corresponding gene
     differences = np.abs(real - perturb).mean(axis=0)
-    # logger.info(f"The differences between perturb and pre-perturb data {differences}-- script_util")
+    
     # Calculate the standard deviation of the differences for each gene 
     std_deviation = np.std(differences)
     logger.info(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
@@ -528,5 +528,6 @@ def filter_gene(real, perturb):
     # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
     index_array = np.arange(0,real.shape[1])
     filter_index = differences > perturb_mean + std_deviation
-    
+    perturb_perc = np.divide(differences / real) 
+    logger.info(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
     return index_array[filter_index]
