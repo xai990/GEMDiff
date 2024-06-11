@@ -164,13 +164,14 @@ class CustomGeneDataset(Dataset):
         
         if random_selection:
             gene,columns = random_selection(gene,df.columns)
+            
         if dge:
             gene = dge(gene)
 
         self.columns = columns
         self.gene = gene
         self.label = label
-        self.columns = columns
+        
 
     def __len__(self):
         return len(self.gene)
