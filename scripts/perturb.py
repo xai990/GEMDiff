@@ -6,6 +6,7 @@ from diffusion.script_util import (
     model_and_diffusion_defaults,
     showdata,
     create_model_and_diffusion,
+    filter_gene,
 )
 import torch.distributed as dist
 from diffusion.resample import create_named_schedule_sampler
