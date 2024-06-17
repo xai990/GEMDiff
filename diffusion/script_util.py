@@ -528,6 +528,8 @@ def filter_gene(real, perturb):
     # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
     index_array = np.arange(0,real.shape[1])
     filter_index = differences > perturb_mean + std_deviation
-    perturb_perc = np.divide(differences / real) 
+    perturb_perc = np.divide(differences, real.mean(axis=0))
+    logger.info(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
+    logger.info(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
     logger.info(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
     return index_array[filter_index]
