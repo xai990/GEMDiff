@@ -4,16 +4,16 @@ data:
   
 model:
   class_cond: True
-  dropout: 0.0
+  dropout: 0.1
   n_layer: 4
   patch_size: 16
   n_head: 2
   feature_size: 16
   
 diffusion:
-  noise_schedule: cosine
-  # linear_start: -6 
-  # linear_end: 6
+  noise_schedule: "cosine"
+  linear_start: 0.0001 
+  linear_end: 0.0195
   diffusion_steps: 1000
   log_every_t: 10
   

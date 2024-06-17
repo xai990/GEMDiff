@@ -182,6 +182,7 @@ class RSPT(nn.Module):
     def forward(self,x):
         return self.back_patch_tokens(x)    
 
+
         
 class GPT(nn.Module):
 
@@ -324,3 +325,66 @@ class GPT(nn.Module):
             # loss = None
         # logger.debug(f"The size of logits:{logits.size()} -- unet")
         return out
+
+
+
+class Classifier(nn.Module):
+
+    def __init__(self,
+        gene_feature,
+        n_head,
+        dropout,
+        n_layer=4,
+        num_classes = None,
+    ):
+        super().__init__()
+        # assert config.vocab_size is not None
+        # assert config.block_size is not None
+        # self.config = config
+        
+       
+        self.gene_feature = gene_feature
+        
+        self.num_classes = num_classes
+        n_embd = gene_feature
+        self.transformer = nn.ModuleDict(dict(
+            wte = nn.Linear(gene_feature, n_embd),
+            drop = nn.Dropout(dropout),
+            h = nn.ModuleList([Block(n_embd,n_head,dropout) for _ in range(n_layer)]),
+            ln_f = nn.LayerNorm(n_embd),
+        ))
+
+        
+        self.pos_embedding = nn.Parameter(torch.randn(1, gene_feature, n_embd)) # change 3rd pos 
+        
+        self.to_patch_embedding = nn.Lienar(gene_feature, gene_feature)
+        self.lm_head = nn.Linear(gene_feature, num_classes)
+        
+        # init all weights
+        self.apply(self._init_weights)
+        # apply special scaled init to the residual projections, per GPT-2 paper
+        for pn, p in self.named_parameters():
+            if pn.endswith('c_proj.weight'):
+                torch.nn.init.normal_(p, mean=0.0, std=0.02/math.sqrt(2 * n_layer))
+
+        # report number of parameters
+        # logger.log("number of parameters: %.2fM" % (self.get_num_params()/1e6,))
+
+
+    def _init_weights(self, module):
+        if isinstance(module, nn.Linear):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+            if module.bias is not None:
+                torch.nn.init.zeros_(module.bias)
+        elif isinstance(module, nn.Embedding):
+            torch.nn.init.normal_(module.weight, mean=0.0, std=0.02)
+
+
+    def forward(self, x):
+        x = self.to_patch_embedding(x)
+        x = self.transformer.drop(x)
+        for block in self.transformer.h:
+            # logger.debug(f"The block is: {block} -- unet")
+            x = block(x)
+        x = self.transformer.ln_f(x)
+        return self.linear_head(x)

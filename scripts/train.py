@@ -41,7 +41,7 @@ def main(args):
     )
     logger.info(f"The size of train dataset: {train_data[:][0].shape}")
     logger.info(f"The size of test dataset: {test_data[:][0].shape}")
-
+    
     
     # change the size of the data 
     # logger.info(f"The size of dataset: {dataset[:][0].shape}")

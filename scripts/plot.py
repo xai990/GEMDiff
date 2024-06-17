@@ -5,7 +5,6 @@ import torch as th
 from omegaconf import OmegaConf
 from diffusion import dist_util, logger
 from diffusion.script_util import showdata, find_model, create_model_and_diffusion
-import datetime
 from diffusion.datasets import load_data
 
 
@@ -13,27 +12,26 @@ def main(args):
     logger.configure(dir=args.dir)
     logger.log("**********************************")
     logger.log("log configure")
-    now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
     dist_util.setup_dist()
     logger.log(f"device information:{dist_util.dev()}")
-    ckpt_path = args.model_path
-    dir_out = os.path.join(args.dir_out, now,)
-    state_dict = find_model(ckpt_path)
-    
-    config = state_dict["conf"]
-    config.diffusion.learn_sigma = False
-    model_config = OmegaConf.to_container(config.model, resolve=True)
-    diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
-    # _, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+    logger.log("Load the config...")
+    basic_conf = create_config()
+    input_conf = OmegaConf.load(args.config)
+    config = OmegaConf.merge(basic_conf, input_conf)
     # load data 
-    _, dataset = load_data(data_dir = config.data.data_dir,
-                    gene_selection = config.model.feature_size,
+    train_data, test_data = load_data(data_dir = config.data.data_dir,
+                    # gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
     )
-    
+    # balance the train and test data 
+    # train_N, train_T = balance_sample_screen(train_data)
+    # test_N, test_T = balance_sample_screen(test_data)
+    # logger.debug(f"The shape of trian data is {train_data[:][0].shape}")
     logger.log("Plot the original dataset with UMAP")
-    showdata(dataset,dir = dir_out, schedule_plot = "origin",)   
+    # showdata(train_data,dir = args.dir_out, schedule_plot = "balance",) 
+    showdata(train_data,dir = args.dir_out, schedule_plot = "balance",)     
+    """
     logger.log("Plot the forward diffsuion process with UMAP")
     # showdata(dataset,
     #          dir = dir_out,
@@ -46,15 +44,49 @@ def main(args):
     data_fake = np.load(file_path)
     
     showdata(dataset,dir = dir_out, schedule_plot = "reverse", synthesis_data=data_fake)
+    """
     logger.log("plot complete...")
 
 
+
+def create_config():
+    
+    defaults = {
+        "data":{
+            "data_dir": None,
+            "dir_out": "results",
+            "gene_selection": None,
+            # "samples":124,
+        },
+        "train":{
+            "microbatch": 16,
+            "log_interval": 500,
+            "save_interval": 8000,
+            "schedule_plot": False,
+            "resume_checkpoint": "",
+            "ema_rate": 0.9999,
+            "num_epoch":8001,
+            "schedule_sampler":"uniform",
+        },
+        "perturb":{
+            # "samples":124,
+        },
+        "umap":{
+            "n_neighbors":90,
+            "min_dist":0.3,
+        }
+
+    }
+    # defaults.update(model_and_diffusion_defaults())
+   
+    return defaults  
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model_path", type=str, default="log/mrna_8/2024-03-28-13-18/model08000.pt")
+    parser.add_argument("--config", type=str, default=None)
     parser.add_argument("--dir_out", type=str, default="results/")
     parser.add_argument("--dir", type=str, default="log/")
-    parser.add_argument("--sample_path", type=str, default="results/2024-03-27T13-50-34/samples_400x8.npz")
+    parser.add_argument("--sample_path", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default=None)
     args = parser.parse_args()
     main(args)

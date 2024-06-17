@@ -4,11 +4,13 @@ import matplotlib.pyplot as plt
 from . import gaussian_diffusion as gd 
 from .respace import SpacedDiffusion, space_timesteps
 import torch as th 
-from .mlp import GPT
+from .mlp import GPT , Classifier
 from . import logger 
 import umap.plot
 import numpy as np 
 import plotly.graph_objects as go
+import random
+
 
 NUM_CLASSES = 2
 
@@ -139,6 +141,27 @@ def create_diffusion(
     )
 
 
+def create_classifier(
+        *,
+        feature_size,
+        class_cond,
+        n_head,
+        n_layer = 4,
+        dropout = 0.0,
+        learn_sigma = True,
+    ):
+    
+    return Classifier(
+        gene_feature=feature_size,
+        n_head=n_head,
+        dropout=dropout,
+        n_layer = n_layer,
+        num_classes=(NUM_CLASSES if class_cond else None),
+    )
+
+
+
+
 def zero_grad(model_params):
     for param in model_params:
         if param.grad is not None:
@@ -199,7 +222,7 @@ def showdata(dataset,
         plt.close()
     elif schedule_plot == "origin":
         # fig,ax = plt.subplots()      
-        data , y = dataset[:][0], dataset[:][1]['y']
+        # data , y = dataset[:][0], dataset[:][1]['y']
         # Define the range of parameters you want to explore
         # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
         # min_dist_options = [0.1, 0.3, 0.6, 0.9]
@@ -242,6 +265,7 @@ def showdata(dataset,
         # samples = 125 # the normal samples are 125 
         # fig,ax = plt.subplots()      
         data , y = dataset[:][0], dataset[:][1]['y']
+        # logger.debug(f"The shape of trian data is {data[:][0].shape} -- script_util")
         # Define the range of parameters you want to explore
         # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
         # min_dist_options = [0.1, 0.3, 0.6, 0.9]
@@ -251,15 +275,17 @@ def showdata(dataset,
         embedding = reducer.fit_transform(data)
         np.random.seed(41)
         # separate the normal data 
+        
         dataset_N = th.Tensor(data[ y == 0]).float()
         dataset_T = th.Tensor(data[ y == 1]).float() 
-        sample = dataset_N.shape[0]
+        tumor = dataset_T.shape[0]
+        samples = dataset_N.shape[0]
         idx_N = np.random.randint(0,dataset_N.shape[0], samples)
         idx_T = np.random.randint(0,dataset_T.shape[0], samples)
         # randomly select the same amount of normal and tumor sample 
         dataset_N = dataset_N[idx_N] 
         dataset_T = dataset_T[idx_T]
-        titles = ["125 normal vs 663 tumor", "125 normal vs 125 tumor"]
+        titles = [f"{samples} normal vs {tumor} tumor", f"{samples} normal vs {samples} tumor"]
         for ele in y:
             index_mask = (ele==y)
             if np.any(index_mask):
@@ -281,7 +307,7 @@ def showdata(dataset,
         axs[1].scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
         axs[1].set_title(titles[1])
         axs[1].axis('off')
-        plt.legend(loc="upper left")
+        plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1))
         # ax.axes.xaxis.set_ticklabels([])
         # ax.axes.yaxis.set_ticklabels([])
         plt.tight_layout()
@@ -471,7 +497,8 @@ def showdata(dataset,
         ax.scatter(q_n[:,0],q_n[:,1],color = 'blue',edgecolor='white',label="real normal")
         ax.scatter(q_t[:,0],q_t[:,1],color = 'orange',edgecolor='white',label="real tumor")
         ax.scatter(q_x[:,0],q_x[:,1],color = 'cyan',edgecolor='white',label="perturb tumor")
-        plt.legend(loc="upper right")
+        plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1))
+        plt.title("Perturb tumor mRNA expression back to normal with Diffusion model")
         ax.axis('off')
         plt.savefig(f"{dir}/UMAP_plot_perturb_{dataset_N.shape[-1]}.png")
         plt.close()
@@ -484,3 +511,25 @@ def find_model(model_name):
     assert os.path.isfile(model_name), f'Could not find model checkpoint at {model_name}'
     checkpoint = th.load(model_name)
     return checkpoint 
+
+
+
+def filter_gene(real, perturb):
+    assert real.shape == perturb.shape, f'The datashape of real and perturbed are different'
+    # Calculate the difference between the corresponding gene
+    differences = np.abs(real - perturb).mean(axis=0)
+    
+    # Calculate the standard deviation of the differences for each gene 
+    std_deviation = np.std(differences)
+    logger.info(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
+    # fileter columns where the difference is greater than 1 standard deviation 
+    perturb_mean = differences.mean()
+    logger.info(f"The mean between perturb and pre-perturb data {perturb_mean} -- script_util")
+    # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
+    index_array = np.arange(0,real.shape[1])
+    filter_index = differences > perturb_mean + std_deviation
+    perturb_perc = np.divide(differences, real.mean(axis=0))
+    logger.info(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
+    logger.info(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
+    logger.info(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
+    return index_array[filter_index]
