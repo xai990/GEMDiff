@@ -42,6 +42,8 @@ def main(args):
     # set the model param
     
     logger.log("creating model and diffusion ... ")
+    config.model.feature_size = train_N.shape[-1]
+    logger.info(f"The model feature size is : {config.model.feature_size}")
     config.model.patch_size = config.model.feature_size
     # config.model.n_embd = config.model.patch_size * 8
     config.model.n_embd = config.model.patch_size * 2
@@ -184,9 +186,13 @@ def main(args):
     showdata(plotdata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
     
     logger.log("filter the perturbed gene -- 1 std")
-    # gene_index = filter_gene(test_T, target.cpu().numpy())
-    gene_index = filter_gene(train_T, target.cpu().numpy())
-    logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
+    gene_index = filter_gene(test_T if args.vaild else train_T, target.cpu().numpy())
+    # gene_index = filter_gene(train_T, target.cpu().numpy())
+    # logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
+    if args.vaild:
+        logger.log(f"The indentified genes are: {test_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {test_N.shape[1]} gene")
+    else:
+        logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
     logger.log("pertubing complete")
 
 
@@ -253,5 +259,6 @@ if __name__ == "__main__":
     parser.add_argument("--dir", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default=None)
     parser.add_argument("--model_dir", type=str, default=None)
+    parser.add_argument("--vaild", action='store_true')
     args = parser.parse_args()
     main(args)
