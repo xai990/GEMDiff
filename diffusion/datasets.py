@@ -8,6 +8,7 @@ import numpy as np
 import blobfile as bf
 import random
 SEED = 1234
+# SEED = 3456
 
 
 
@@ -137,34 +138,40 @@ class CustomGeneDataset(Dataset):
                 df = df[df.columns.intersection(geneset)]
             else: # else include gmt and pure -- need to specific the case in the future to avoid protential error 
                 geneset = read_file(gene_set)
-                logger.log(f"The input gene set is {geneset['gene_set']}, contains {len(geneset['genes'])} genes")
+                logger.log(f"The input gene set is {geneset['gene_set']}, contains {geneset['genes']} genes")
                 # logger.debug(f"The intersection is : {df.columns} -- dataset")
                 # logger.debug(f"The intersection is : {df.columns} -- dataset")
+                logger.info(f"The intersection geneset is: {df.columns.intersection(geneset['genes'])} -- dataset")
                 df = df[df.columns.intersection(geneset['genes'])]
             logger.log(f"loaded selected data has {df.shape[1]} genes, {df.shape[0]} samples")
             
         gene_features = df.values
-    
+        self.df = df 
         assert os.path.exists(labelpath), "gene label path: {} does not exist.".format(labelpath)
         # read the gene labels
         df_labels= pd.read_csv(labelpath, sep='\t', header=None)
         classes = sorted(set(df_labels[1]))
         logger.info(f"loaded input data has {len(classes)} classes")
         self.classes = classes
-       
+        self.random_selection = random_selection
+        columns = df.columns
         if transform:
             gene = transform(gene_features, scaler, filter)
-            
+
+
         if target_transform:
             label = target_transform(df_labels[1].values, classes)
         
         if random_selection:
-            gene = random_selection(gene)
+            gene,columns = random_selection(gene,df.columns)
+            
         if dge:
             gene = dge(gene)
 
+        self.columns = columns
         self.gene = gene
         self.label = label
+        
 
     def __len__(self):
         return len(self.gene)
@@ -175,6 +182,14 @@ class CustomGeneDataset(Dataset):
         if self.classes:
             out_dict["y"] = np.array(self.label[idx], dtype=np.int64)
         return np.array(self.gene[idx], dtype=np.float32), out_dict
+
+
+    def find_gene(self, gene_index):
+        # assert self.random_selection is not None, "Find gene only be available when random select gene"
+        gene_list = self.columns[gene_index]
+            
+        return gene_list
+
 
 
 class GeneDataTransform():
@@ -220,7 +235,7 @@ class GeneDataTransform():
             sample = 2 * (sample - mins) / (maxs - mins) - 1
         # comment out for test experiment     
         # sample = sample[:,np.newaxis,:]
-        return sample
+        return np.array(sample, dtype=np.float32)
 
 
 class GeneLabelTransform():
@@ -246,36 +261,36 @@ class GeneRandom():
         if isinstance(self.features, str):
             self.features = int(self.features)
   
-    def __call__(self, sample):
+    def __call__(self, sample, columns):
         if self.seed is not None:
             random.seed(self.seed)
             np.random.seed(self.seed)
         # random select the gene 
         if self.features <= sample.shape[-1]:
             idx = np.random.randint(0,sample.shape[-1], self.features)
-            return sample[:,idx]
-        return sample [:,:]
+            return np.array(sample[:,idx], dtype=np.float32), columns[idx]
+        return np.array(sample[:,:], dtype=np.float32), columns
         # return sample[:,:,idx]
         
 
 
 
-class SklearnDataset(Dataset): 
-    def __init__(self,dataset,label=None,classes=None):
-        logger.info("reading input data from sklearn datasets") 
+# class SklearnDataset(Dataset): 
+#     def __init__(self,dataset,label=None,classes=None):
+#         logger.info("reading input data from sklearn datasets") 
     
-        self.data = dataset[:,np.newaxis,:]
-        self.label = label
-        self.classes = classes
-    def __len__(self):
-        return len(self.data)
+#         self.data = dataset[:,np.newaxis,:]
+#         self.label = label
+#         self.classes = classes
+#     def __len__(self):
+#         return len(self.data)
     
-    def __getitem__(self,idx):
+#     def __getitem__(self,idx):
         
-        out_dict = {}
-        if self.classes is not None:
-            out_dict["y"] = np.array(label[idx], dtype=np.int64)
-        return np.array(self.data[idx], dtype=np.float32), out_dict
+#         out_dict = {}
+#         if self.classes is not None:
+#             out_dict["y"] = np.array(label[idx], dtype=np.int64)
+#         return np.array(self.data[idx], dtype=np.float32), out_dict
 
 
 class Genedifferential():
@@ -335,3 +350,23 @@ def balance_sample_screen(dataset):
     # return np.array(datasample[idx], dtype=np.float32), out_dict
     return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
 
+
+
+class LabelGeneDataset(Dataset): 
+    def __init__(
+        self, 
+        dataset,
+        label, 
+    ):
+        self.dataset = dataset
+        self.label = np.array([label] * dataset.shape[0])
+        
+
+    def __len__(self):
+        return len(self.dataset)
+    
+    def __getitem__(self,idx):
+        
+        out_dict = {}
+        out_dict["y"] = np.array(self.label[idx], dtype=np.int64)
+        return np.array(self.dataset[idx], dtype=np.float32), out_dict
