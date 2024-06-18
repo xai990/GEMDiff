@@ -66,8 +66,8 @@ def main(args):
         logger.log("train the target model:")  
         
         schedule_sampler = create_named_schedule_sampler(config.train.schedule_sampler, diffusion)
-        train_N = LabelGeneDataset(train_N,0)
-        loader_N = data_loader(train_N,
+        trainN = LabelGeneDataset(train_N,0)
+        loader_N = data_loader(trainN,
                         batch_size=config.train.batch_size,            
         ) 
         optimizer_N = th.optim.Adam(model_N.parameters(),lr=config.train.lr)
@@ -83,7 +83,10 @@ def main(args):
                 # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
                 # t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
                 t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
-                losses = diffusion.loss(model_N,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=target_y)
+                losses = diffusion.loss(model_N,
+                                        batch.to(dist_util.dev()),
+                                        t.to(dist_util.dev()),
+                                        model_kwargs=target_y if config.model.class_cond else None)
                 loss = (losses["loss"]).mean()
                 optimizer_N.zero_grad()
                 loss.backward()
@@ -114,8 +117,8 @@ def main(args):
         logger.info(model_T)
         ema_T = deepcopy(model_T).to(dist_util.dev())  # Create an EMA of the model for use after training
         requires_grad(ema_T, False)
-        train_T = LabelGeneDataset(train_T,1)
-        loader_T = data_loader(train_T,
+        trainT = LabelGeneDataset(train_T,1)
+        loader_T = data_loader(trainT,
                         batch_size=config.train.batch_size,            
         )
         optimizer_T = th.optim.Adam(model_T.parameters(),lr=config.train.lr)
@@ -129,7 +132,10 @@ def main(args):
                 
                 batch_size = batch.shape[0]
                 t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
-                losses = diffusion.loss(model_T,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=source_y)
+                losses = diffusion.loss(model_T,
+                                        batch.to(dist_util.dev()),
+                                        t.to(dist_util.dev()),
+                                        model_kwargs=source_y if config.model.class_cond else None)
                 loss = (losses["loss"]).mean()
                 optimizer_N.zero_grad()
                 loss.backward()
@@ -170,7 +176,8 @@ def main(args):
     
     logger.log("pertubing the source to target")
     source_label = {}
-    source_label['y'] = th.ones(test_T.shape[0] if vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
+    if config.model.class_cond:
+        source_label['y'] = th.ones(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
     noise_T = diffusion.ddim_reverse_sample_loop(
         ema_T,
         test_T.shape if args.vaild else train_T.shape,
@@ -180,7 +187,8 @@ def main(args):
         # device=dist_util.dev(),
     )
     target_label = {}
-    target_label['y'] = th.ones(test_T.shape[0] if vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
+    if config.model.class_cond:
+        target_label['y'] = th.ones(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
     target = diffusion.ddim_sample_loop(ema_N,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
@@ -218,7 +226,7 @@ def create_config():
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":80001,
+            "num_epoch":1,
             "schedule_sampler":"uniform",
         },
         "perturb":{
