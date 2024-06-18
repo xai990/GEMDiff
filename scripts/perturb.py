@@ -78,6 +78,7 @@ def main(args):
             for idx,batch_x in enumerate(loader_N):
                 batch, cond = batch_x
                 target_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
+                # logger.debug(f"target_t is : {target_y}")
                 batch_size = batch.shape[0]
                 # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
                 # t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
@@ -125,9 +126,10 @@ def main(args):
             for idx,batch_x in enumerate(loader_T):
                 batch, cond = batch_x # not consider the label info for now 
                 source_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
+                
                 batch_size = batch.shape[0]
                 t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
-                losses = diffusion.loss(model_T,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=y)
+                losses = diffusion.loss(model_T,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=source_y)
                 loss = (losses["loss"]).mean()
                 optimizer_N.zero_grad()
                 loss.backward()
@@ -167,7 +169,8 @@ def main(args):
         ema_T.eval()
     
     logger.log("pertubing the source to target")
-    source_label = np.array(test_T.shape[0] * [1] if args.vaild else train_T.shape[0] * [1])
+    source_label = {}
+    source_label['y'] = th.ones(test_T.shape[0] if vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
     noise_T = diffusion.ddim_reverse_sample_loop(
         ema_T,
         test_T.shape if args.vaild else train_T.shape,
@@ -176,7 +179,8 @@ def main(args):
         model_kwargs=source_label,
         # device=dist_util.dev(),
     )
-    target_label = np.array(noise_T.shape[0] * [0])
+    target_label = {}
+    target_label['y'] = th.ones(test_T.shape[0] if vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
     target = diffusion.ddim_sample_loop(ema_N,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
@@ -209,12 +213,12 @@ def create_config():
         },
         "train":{
             "microbatch": 16,
-            "log_interval": 500,
-            "save_interval": 10000,
+            "log_interval": 1000,
+            "save_interval": 20000,
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":40001,
+            "num_epoch":80001,
             "schedule_sampler":"uniform",
         },
         "perturb":{
