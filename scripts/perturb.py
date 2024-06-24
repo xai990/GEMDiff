@@ -66,7 +66,10 @@ def main(args):
         logger.log("train the target model:")  
         
         schedule_sampler = create_named_schedule_sampler(config.train.schedule_sampler, diffusion)
-        trainN = LabelGeneDataset(train_N,0)
+        if config.model.class_cond:
+            trainN = LabelGeneDataset(train_N,0)
+        else:
+            trainN = train_N
         loader_N = data_loader(trainN,
                         batch_size=config.train.batch_size,            
         ) 
@@ -77,7 +80,9 @@ def main(args):
         for epoch in range(config.train.num_epoch):
             for idx,batch_x in enumerate(loader_N):
                 batch, cond = batch_x
-                target_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
+                target_y = {}
+                if config.model.class_cond:
+                    target_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
                 # logger.debug(f"target_t is : {target_y}")
                 batch_size = batch.shape[0]
                 # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
@@ -86,7 +91,7 @@ def main(args):
                 losses = diffusion.loss(model_N,
                                         batch.to(dist_util.dev()),
                                         t.to(dist_util.dev()),
-                                        model_kwargs=target_y if config.model.class_cond else None)
+                                        model_kwargs=target_y)
                 loss = (losses["loss"]).mean()
                 optimizer_N.zero_grad()
                 loss.backward()
@@ -117,7 +122,10 @@ def main(args):
         logger.info(model_T)
         ema_T = deepcopy(model_T).to(dist_util.dev())  # Create an EMA of the model for use after training
         requires_grad(ema_T, False)
-        trainT = LabelGeneDataset(train_T,1)
+        if config.model.class_cond:
+            trainT = LabelGeneDataset(train_T,1)
+        else:
+            trainT = train_T
         loader_T = data_loader(trainT,
                         batch_size=config.train.batch_size,            
         )
@@ -128,14 +136,16 @@ def main(args):
         for epoch in range(config.train.num_epoch):
             for idx,batch_x in enumerate(loader_T):
                 batch, cond = batch_x # not consider the label info for now 
-                source_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
+                source_y = {}
+                if config.model.class_cond:
+                    source_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
                 
                 batch_size = batch.shape[0]
                 t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
                 losses = diffusion.loss(model_T,
                                         batch.to(dist_util.dev()),
                                         t.to(dist_util.dev()),
-                                        model_kwargs=source_y if config.model.class_cond else None)
+                                        model_kwargs=source_y)
                 loss = (losses["loss"]).mean()
                 optimizer_N.zero_grad()
                 loss.backward()
@@ -186,9 +196,10 @@ def main(args):
         model_kwargs=source_label,
         # device=dist_util.dev(),
     )
+    # noise_T = th.randn_like(train_N).to(dist_util.dev())
     target_label = {}
     if config.model.class_cond:
-        target_label['y'] = th.ones(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
+        target_label['y'] = th.zeros(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
     target = diffusion.ddim_sample_loop(ema_N,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
@@ -226,7 +237,7 @@ def create_config():
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":1,
+            "num_epoch":80001,
             "schedule_sampler":"uniform",
         },
         "perturb":{
