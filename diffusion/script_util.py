@@ -10,6 +10,7 @@ import umap.plot
 import numpy as np 
 import plotly.graph_objects as go
 import random
+from sklearn.metrics import silhouette_score 
 
 
 NUM_CLASSES = 2
@@ -246,67 +247,43 @@ def showdata(dataset,
         plt.legend(loc="upper left")
         plt.tight_layout()
         plt.subplots_adjust(wspace=0., hspace=0.)
-        
-        """
-        q_i = reducer.fit_transform(data)
-        for ele in y:
-            index_mask = (ele==y)
-            if np.any(index_mask):
-                ax.scatter(q_i[index_mask,0],
-                            q_i[index_mask,1],
-                            label = ele, 
-                            color=colors[ele],
-                            edgecolor='white')
-        ax.axis('off')
-        """
         plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
         plt.close()
-    elif schedule_plot == "balance":
-        # samples = 125 # the normal samples are 125 
-        # fig,ax = plt.subplots()      
+    elif schedule_plot == "balance": 
         data , y = dataset[:][0], dataset[:][1]['y']
         # logger.debug(f"The shape of trian data is {data[:][0].shape} -- script_util")
         # Define the range of parameters you want to explore
         # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
         # min_dist_options = [0.1, 0.3, 0.6, 0.9]
         color_map = ['blue','orange']
-        fig,axs = plt.subplots(1,2)
+        fig,axs = plt.subplots()
         labels = ['normal','tumor']
         embedding = reducer.fit_transform(data)
         np.random.seed(41)
         # separate the normal data 
-        
         dataset_N = th.Tensor(data[ y == 0]).float()
         dataset_T = th.Tensor(data[ y == 1]).float() 
-        tumor = dataset_T.shape[0]
+        # tumor = dataset_T.shape[0]
         samples = dataset_N.shape[0]
         idx_N = np.random.randint(0,dataset_N.shape[0], samples)
         idx_T = np.random.randint(0,dataset_T.shape[0], samples)
         # randomly select the same amount of normal and tumor sample 
         dataset_N = dataset_N[idx_N] 
         dataset_T = dataset_T[idx_T]
-        titles = [f"{samples} normal vs {tumor} tumor", f"{samples} normal vs {samples} tumor"]
-        for ele in y:
-            index_mask = (ele==y)
-            if np.any(index_mask):
-                label = labels[ele] if labels[ele] not in added_labels else None
-                axs[0].scatter(embedding[index_mask,0],
-                            embedding[index_mask,1],
-                            label = label, 
-                            color=color_map[ele],
-                            edgecolor='white')
-                if label:
-                    added_labels.add(label)
-        axs[0].axis('off')
-        axs[0].set_title(titles[0])
+        
         data_merge = th.vstack([dataset_N,dataset_T])
         x_ump = reducer.fit_transform(data_merge)
         q_i = x_ump[:len(dataset_N)]
         q_x = x_ump[len(dataset_N):]
-        axs[1].scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
-        axs[1].scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
-        axs[1].set_title(titles[1])
-        axs[1].axis('off')
+        # use Silhouette Score as standard for the plot 
+        x_silhoutette = th.vstack([q_i, q_x])
+        label_silhoutette = th.vstack([th.zeros(len(dataset_N)), th.ones(len(dataset_T))])
+        score = silhouette_score(x_silhoutette, label_silhoutette)
+        titles = [f"{samples} normal vs {samples} tumor with silhouette score {score}"]
+        axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
+        axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
+        axs.set_title(titles[0])
+        axs.axis('off')
         plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1))
         # ax.axes.xaxis.set_ticklabels([])
         # ax.axes.yaxis.set_ticklabels([])
@@ -358,9 +335,6 @@ def showdata(dataset,
         # stack the data together for overarching patterns 
         data_merged = np.vstack([data_r,data_f])
         fig,ax = plt.subplots()
-        # create the umap parameters sweep plot 
-        # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
-        # min_dist_options = [0.1, 0.3, 0.6, 0.9]
         color_map = ['blue','orange','cyan','blueviolet']
         labels = ['real_normal','real_tumor','fake_normal', 'fake_turmor']
         
@@ -368,7 +342,6 @@ def showdata(dataset,
         q_r = q_i[:len(y_r)]
         q_f = q_i[len(y_r):]
         # Plot
-        # added_labels.clear()
         for ele in y_r:
             index_mask = (ele==y_r)
             if np.any(index_mask):
