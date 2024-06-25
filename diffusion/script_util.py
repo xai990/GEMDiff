@@ -522,7 +522,6 @@ def filter_gene(real, perturb):
     # Calculate the standard deviation of the differences for each gene 
     std_deviation = np.std(differences)
     logger.info(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
-    logger.info(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
     # fileter columns where the difference is greater than 1 standard deviation 
     perturb_mean = differences.mean()
     logger.info(f"The mean between perturb and pre-perturb data {perturb_mean} -- script_util")
