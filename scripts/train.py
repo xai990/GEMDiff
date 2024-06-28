@@ -64,7 +64,7 @@ def main(args):
     ## need to reconsider the patch size 
     ## here is a hard way, make the patch size is equal to the feature size
     config.model.patch_size = config.model.feature_size
-    config.model.n_embd = config.model.patch_size * 8
+    config.model.n_embd = config.model.patch_size * 2
     
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
@@ -76,7 +76,7 @@ def main(args):
     logger.info(model)
     ema = deepcopy(model).to(dist_util.dev())  # Create an EMA of the model for use after training
     requires_grad(ema, False)
-    
+    schedule_sampler = create_named_schedule_sampler(config.train.schedule_sampler, diffusion)
     logger.log("train the model:")  
     optimizer = th.optim.Adam(model.parameters(),lr=config.train.lr)
     update_ema(ema, model, decay=0)  # Ensure EMA is initialized with synced weights
@@ -88,8 +88,9 @@ def main(args):
             batch, cond = batch_x
             y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
             batch_size = batch.shape[0]
-            t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
-            t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
+            # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
+            # t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
+            t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
             losses = diffusion.loss(model,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=y)
             loss = (losses["loss"]).mean()
             optimizer.zero_grad()
@@ -131,11 +132,12 @@ def create_config():
         "train":{
             "microbatch": 16,
             "log_interval": 500,
-            "save_interval": 8000,
+            "save_interval": 10000,
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":8001
+            "num_epoch":80001,
+            "schedule_sampler":"uniform",
         },
     }
     defaults.update(model_and_diffusion_defaults())
