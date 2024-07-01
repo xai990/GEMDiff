@@ -502,6 +502,7 @@ class DenoiseDiffusion():
         progress=False,
         eta=0.0,
         return_intermediates=False,
+        time_steps = None,
     ):
         """
         Generate sample from the model using DDIM 
@@ -513,11 +514,13 @@ class DenoiseDiffusion():
             seq = th.randn(shape, device=device)
         else:
             seq = noise
+        if time_steps is None:
+            time_steps = self.num_timesteps
         intermediates = [seq]
         # tqdm is used to display progress bars in loops or iterable processes
-        for i in tqdm(reversed(range(0,self.num_timesteps)),
+        for i in tqdm(reversed(range(0,time_steps)),
                       desc='Sampling t',
-                      total=self.num_timesteps,
+                      total=time_steps,
         ):
             t = th.tensor([i] * shape[0], device = device)
             out = self.ddim_sample(model, seq, t, model_kwargs=model_kwargs)
@@ -541,14 +544,17 @@ class DenoiseDiffusion():
         model_kwargs=None,
         device=None,
         eta=0.0,
+        time_steps = None,
     ):
         latent = None
         if device is None:
             device = next(model.parameters()).device
 
-        for i in tqdm(range(0,self.num_timesteps),
+        if time_steps is None:
+            time_steps = self.num_timesteps
+        for i in tqdm(range(0,time_steps),
                       desc='Sampling latent',
-                      total=self.num_timesteps,
+                      total=time_steps,
         ):
             t = th.tensor([i] * shape[0], device=device)
             out = self.ddim_reverse_sample(
