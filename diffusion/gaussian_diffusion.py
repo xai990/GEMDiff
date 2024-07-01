@@ -502,7 +502,6 @@ class DenoiseDiffusion():
         progress=False,
         eta=0.0,
         return_intermediates=False,
-        time_steps = None,
     ):
         """
         Generate sample from the model using DDIM 
@@ -514,13 +513,12 @@ class DenoiseDiffusion():
             seq = th.randn(shape, device=device)
         else:
             seq = noise
-        if time_steps is None:
-            time_steps = self.num_timesteps
+        
         intermediates = [seq]
         # tqdm is used to display progress bars in loops or iterable processes
-        for i in tqdm(reversed(range(0,time_steps)),
+        for i in tqdm(reversed(range(0,self.num_timesteps)),
                       desc='Sampling t',
-                      total=time_steps,
+                      total=self.num_timesteps,
         ):
             t = th.tensor([i] * shape[0], device = device)
             out = self.ddim_sample(model, seq, t, model_kwargs=model_kwargs)
@@ -528,9 +526,8 @@ class DenoiseDiffusion():
                 intermediates.append(out["sample"])
             seq = out["sample"]
         final = out["sample"]
-        if return_intermediates:
-            return final, intermediates 
-        return final 
+        return final, intermediates if return_intermediates else final
+           
 
 
     @th.no_grad()
@@ -544,17 +541,16 @@ class DenoiseDiffusion():
         model_kwargs=None,
         device=None,
         eta=0.0,
-        time_steps = None,
+        return_intermediates=False,
     ):
         latent = None
         if device is None:
             device = next(model.parameters()).device
 
-        if time_steps is None:
-            time_steps = self.num_timesteps
-        for i in tqdm(range(0,time_steps),
+        intermediates = [x]
+        for i in tqdm(range(0,self.num_timesteps),
                       desc='Sampling latent',
-                      total=time_steps,
+                      total=self.num_timesteps,
         ):
             t = th.tensor([i] * shape[0], device=device)
             out = self.ddim_reverse_sample(
@@ -566,9 +562,11 @@ class DenoiseDiffusion():
                     model_kwargs=model_kwargs,
                     eta=eta,
                 )
+            if i % self.log_every_t == 0:                
+                intermediates.append(out["sample"])
             x = out["sample"]
         latent = out["sample"]
-        return latent 
+        return latent, intermediates if return_intermediates else latent
 
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
