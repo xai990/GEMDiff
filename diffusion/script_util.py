@@ -11,6 +11,7 @@ import numpy as np
 import plotly.graph_objects as go
 import random
 from sklearn.metrics import silhouette_score 
+from .datasets import balance_sample_screen
 
 
 NUM_CLASSES = 2
@@ -182,12 +183,14 @@ def showdata(dataset,
             n_neighbors = 15,
             min_dist = 0.1,
             random_state = 41,
+            gene_set = None,
     ):
     # dir to save the plot image
     assert isinstance(dir,str)
     os.makedirs(dir,exist_ok=True)
     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
     added_labels = set()
+    geneset = gene_set.split("/")[-1] if gene_set else "random"
     if schedule_plot == "forward": 
         colors = ['blue','orange']
         labels = ['normal','tumor']
@@ -223,7 +226,7 @@ def showdata(dataset,
         plt.close()
     elif schedule_plot == "origin":
         # fig,ax = plt.subplots()      
-        # data , y = dataset[:][0], dataset[:][1]['y']
+        data , y = dataset[:][0], dataset[:][1]['y']
         # Define the range of parameters you want to explore
         # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
         # min_dist_options = [0.1, 0.3, 0.6, 0.9]
@@ -249,46 +252,32 @@ def showdata(dataset,
         plt.subplots_adjust(wspace=0., hspace=0.)
         plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
         plt.close()
-    elif schedule_plot == "balance": 
-        data , y = dataset[:][0], dataset[:][1]['y']
-        # logger.debug(f"The shape of trian data is {data[:][0].shape} -- script_util")
-        # Define the range of parameters you want to explore
-        # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
-        # min_dist_options = [0.1, 0.3, 0.6, 0.9]
+    elif schedule_plot == "balance":
+        # logger.debug(f"The dataset is : {dataset[:][1]} -- script_util") 
         color_map = ['blue','orange']
         fig,axs = plt.subplots()
         labels = ['normal','tumor']
-        embedding = reducer.fit_transform(data)
-        np.random.seed(41)
-        # separate the normal data 
-        dataset_N = th.Tensor(data[ y == 0]).float()
-        dataset_T = th.Tensor(data[ y == 1]).float() 
-        # tumor = dataset_T.shape[0]
+        dataset_N,dataset_T = balance_sample_screen(dataset)
         samples = dataset_N.shape[0]
-        idx_N = np.random.randint(0,dataset_N.shape[0], samples)
-        idx_T = np.random.randint(0,dataset_T.shape[0], samples)
-        # randomly select the same amount of normal and tumor sample 
-        dataset_N = dataset_N[idx_N] 
-        dataset_T = dataset_T[idx_T]
-        
-        data_merge = th.vstack([dataset_N,dataset_T])
+        data_merge = np.vstack([dataset_N,dataset_T])
         x_ump = reducer.fit_transform(data_merge)
         q_i = x_ump[:len(dataset_N)]
         q_x = x_ump[len(dataset_N):]
         # use Silhouette Score as standard for the plot 
-        x_silhoutette = th.vstack([q_i, q_x])
-        label_silhoutette = th.vstack([th.zeros(len(dataset_N)), th.ones(len(dataset_T))])
-        score = silhouette_score(x_silhoutette, label_silhoutette)
-        titles = [f"{samples} normal vs {samples} tumor with silhouette score {score}"]
+        score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
+        logger.info("*********************************************************")
+        logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
+        logger.info("*********************************************************")
+        titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
         axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
         axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
         axs.set_title(titles[0])
         axs.axis('off')
-        plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1))
+        plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
         # ax.axes.xaxis.set_ticklabels([])
         # ax.axes.yaxis.set_ticklabels([])
         plt.tight_layout()
-        plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
+        plt.savefig(f"{dir}/{geneset}_{data_merge.shape[-1]}.png")
         plt.close()
         """
         # Setup the subplot grid
@@ -494,15 +483,43 @@ def filter_gene(real, perturb):
     
     # Calculate the standard deviation of the differences for each gene 
     std_deviation = np.std(differences)
-    logger.info(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
+    logger.log(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
     # fileter columns where the difference is greater than 1 standard deviation 
     perturb_mean = differences.mean()
-    logger.info(f"The mean between perturb and pre-perturb data {perturb_mean} -- script_util")
+    logger.log(f"The mean between perturb and pre-perturb data {perturb_mean} -- script_util")
     # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
     index_array = np.arange(0,real.shape[1])
     filter_index = differences > perturb_mean + std_deviation
     perturb_perc = np.divide(differences, real.mean(axis=0))
-    logger.info(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
-    logger.info(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
-    logger.info(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
+    logger.log(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
+    logger.log(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
+    logger.log(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
     return index_array[filter_index]
+
+
+
+def get_silhouettescore(
+    dataset,
+    embed_q1 = None,
+    embed_q2 = None,  
+    n_neighbors = 15,
+    min_dist = 0.1,
+    random_state = 41,
+    gene_set = None,
+):
+    
+    if embed_q1 is None or embed_q2 is None:
+        dataset_N, dataset_T =  balance_sample_screen(dataset)
+        data_merge = np.vstack([dataset_N,dataset_T])
+        reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
+        umap_embed = reducer.fit_transform(data_merge)
+        embed_q1 = umap_embed[:len(dataset_N)]
+        embed_q2 = umap_embed[len(dataset_N):]
+    q_i = embed_q1
+    q_x = embed_q2
+    # use Silhouette Score as standard for the plot 
+    x_silhoutette = np.vstack((q_i, q_x))
+    # logger.debug(f"The size of x_silhoutette is: {x_silhoutette.shape} -- script_util")
+    label_silhoutette = np.vstack((np.zeros((len(embed_q1),1)), np.ones((len(embed_q2),1))))
+    score = silhouette_score(x_silhoutette, label_silhoutette)
+    return score 

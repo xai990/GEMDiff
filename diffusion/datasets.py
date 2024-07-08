@@ -7,7 +7,8 @@ import os
 import numpy as np 
 import blobfile as bf
 import random
-SEED = 1234
+SEED = None 
+# SEED = 1234
 # SEED = 3456
 
 
