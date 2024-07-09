@@ -172,6 +172,7 @@ class CustomGeneDataset(Dataset):
         self.columns = columns
         self.gene = gene
         self.label = label
+        self.index = df.index
         
 
     def __len__(self):
@@ -190,6 +191,14 @@ class CustomGeneDataset(Dataset):
         gene_list = self.columns[gene_index]
             
         return gene_list
+    
+    def find_sample(self, sample_name):
+        
+        regex_pattern = '|'.join(sample_name)
+        mask = self.index.to_series().str.contains(regex_pattern, case=False, na=False)
+        numeric_indices = mask[mask].index.tolist()
+        integer_indices = [i for i, x in enumerate(mask) if x]
+        return integer_indices
 
 
 
@@ -344,8 +353,8 @@ def balance_sample_screen(dataset):
     dataset_T = np.array(data[ y == 1])
     n = min(dataset_N.shape[0],dataset_T.shape[0])
     np.random.seed(41) # reproduceable 
-    idx_N= np.random.randint(0,dataset_N.shape[0], n)
-    idx_T= np.random.randint(0,dataset_T.shape[0], n)
+    idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
+    idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
     # out_dict = {}
     # out_dict["y"] = np.array(y[y == cond], dtype=np.int64)
     # return np.array(datasample[idx], dtype=np.float32), out_dict
@@ -371,3 +380,8 @@ class LabelGeneDataset(Dataset):
         out_dict = {}
         out_dict["y"] = np.array(self.label[idx], dtype=np.int64)
         return np.array(self.dataset[idx], dtype=np.float32), out_dict
+
+
+def matched_samples(filepath):
+    df = pd.read_csv(filepath)
+    return df
