@@ -523,3 +523,6 @@ def get_silhouettescore(
     label_silhoutette = np.vstack((np.zeros((len(embed_q1),1)), np.ones((len(embed_q2),1))))
     score = silhouette_score(x_silhoutette, label_silhoutette)
     return score 
+
+
+
