@@ -353,10 +353,10 @@ def balance_sample_screen(dataset):
     dataset_T = np.array(data[ y == 1])
     n = min(dataset_N.shape[0],dataset_T.shape[0])
     np.random.seed(41) # reproduceable 
-    # idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
-    # idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
-    idx_N= np.random.randint(0,dataset_N.shape[0], n)
-    idx_T= np.random.randint(0,dataset_T.shape[0], n)
+    idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
+    idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
+    # idx_N= np.random.randint(0,dataset_N.shape[0], n)
+    # idx_T= np.random.randint(0,dataset_T.shape[0], n)
     # out_dict = {}
     # out_dict["y"] = np.array(y[y == cond], dtype=np.int64)
     # return np.array(datasample[idx], dtype=np.float32), out_dict
