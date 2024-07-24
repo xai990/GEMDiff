@@ -217,6 +217,7 @@ def main(args):
         logger.log(f"The indentified genes are: {test_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {test_N.shape[1]} gene")
     else:
         logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
+    
     logger.log("pertubing complete")
 
 
@@ -237,7 +238,7 @@ def create_config():
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":80001,
+            "num_epoch":40001,
             "schedule_sampler":"uniform",
         },
         "perturb":{
