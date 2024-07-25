@@ -25,8 +25,3 @@ train:
   # log_interval: 100
   # save_interval: 1
 
-sample:
-  model_path: "log/2024-03-27-13-19/model08000.pt"
-
-plot:
-  file_path: "results/2024-03-27T15-25-59/samples_800x8.npz"
