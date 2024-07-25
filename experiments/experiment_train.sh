@@ -2,7 +2,7 @@
 
 CONFIG_DIR="configs"
 SLURM_TEMPLATE="experiments/ddpm_train.sh"
-GENE_PATH="None"
+GENE_PATH="Random"
 JOB_DIR="jobs/"
 
 for CONFIG_FILE in "$CONFIG_DIR"/*.yaml; do 

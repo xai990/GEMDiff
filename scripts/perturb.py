@@ -281,7 +281,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/mrna_16.yaml")
     parser.add_argument("--dir", type=str, default=None)
-    parser.add_argument("--gene_set", type=str, default=None)
+    parser.add_argument("--gene_set", type=str, default="Random")
     parser.add_argument("--model_dir", type=str, default=None)
     parser.add_argument("--vaild", action='store_true')
     args = parser.parse_args()

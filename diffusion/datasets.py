@@ -118,7 +118,7 @@ class CustomGeneDataset(Dataset):
         self, 
         genepath="data.txt",
         labelpath="label.txt", 
-        gene_set = None,
+        gene_set = "Random",
         transform=None, 
         filter = None, 
         scaler = None, 
@@ -132,7 +132,7 @@ class CustomGeneDataset(Dataset):
         # read the gene expression 
         df = pd.read_csv(genepath, sep='\t', index_col=0)
         logger.log(f"loaded input data has {df.shape[1]} genes, {df.shape[0]} samples")
-        if gene_set is not None:
+        if gene_set != "Random":
             if gene_set.lower().endswith('.tsv'):
                 geneset = pd.read_csv(gene_set, delimiter='\t')
                 geneset = list(set(geneset["#node1"]))
