@@ -6,7 +6,6 @@ model:
   class_cond: True
   dropout: 0.1
   n_layer: 6
-  patch_size: 128
   n_head: 4
   feature_size: 128
   
