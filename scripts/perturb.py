@@ -237,7 +237,7 @@ def create_config():
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":1,
+            "num_epoch":40001,
             "schedule_sampler":"uniform",
         },
         "perturb":{
