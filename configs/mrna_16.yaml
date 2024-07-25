@@ -4,7 +4,7 @@ data:
   
 model:
   class_cond: True
-  dropout: 0.1
+  dropout: 0.0
   n_layer: 4
   patch_size: 16
   n_head: 2

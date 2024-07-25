@@ -41,16 +41,7 @@ def main(args):
     )
     logger.info(f"The size of train dataset: {train_data[:][0].shape}")
     logger.info(f"The size of test dataset: {test_data[:][0].shape}")
-    
-    
-    # change the size of the data 
-    # logger.info(f"The size of dataset: {dataset[:][0].shape}")
-    # assert the task: augmentation or perturbation
-    # pertubation will be done with balance data -- equal number of normal an d tumor 
-    # if args.task == "perturb-N":
-    #     dataset = balance_sample_screen(dataset, config.data.samples, 0)
-    # elif args.task == "perturb-T":
-    #     dataset = balance_sample_screen(dataset, config.data.samples, 1)
+
     
     # logger.debug(f"The size of dataset is :{dataset}")
        
@@ -64,7 +55,7 @@ def main(args):
     ## need to reconsider the patch size 
     ## here is a hard way, make the patch size is equal to the feature size
     config.model.patch_size = config.model.feature_size
-    config.model.n_embd = config.model.patch_size * 2
+    config.model.n_embd = config.model.patch_size * 4
     
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
@@ -88,8 +79,6 @@ def main(args):
             batch, cond = batch_x
             y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
             batch_size = batch.shape[0]
-            # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
-            # t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
             t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
             losses = diffusion.loss(model,batch.to(dist_util.dev()),t.to(dist_util.dev()), model_kwargs=y)
             loss = (losses["loss"]).mean()
@@ -136,7 +125,7 @@ def create_config():
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":80001,
+            "num_epoch":40001,
             "schedule_sampler":"uniform",
         },
     }
@@ -173,6 +162,5 @@ if __name__=="__main__":
     parser.add_argument("--config", type=str, default="configs/mrna_16.yaml")
     parser.add_argument("--dir", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default=None)
-    # parser.add_argument("--task", type=str, default="augment")
     args = parser.parse_args()
     main(args)
