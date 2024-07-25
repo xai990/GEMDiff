@@ -55,7 +55,7 @@ def main(args):
     ## need to reconsider the patch size 
     ## here is a hard way, make the patch size is equal to the feature size
     config.model.patch_size = config.model.feature_size
-    config.model.n_embd = config.model.patch_size * 4
+    config.model.n_embd = config.model.patch_size * 8
     
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
