@@ -339,7 +339,7 @@ def read_file(filename):
     return gene_sets
 
 
-def balance_sample_screen(dataset):
+def sample_screen(dataset):
     """ 
     randomly select equal number of normal and tumor samples from dataset
     
@@ -348,19 +348,18 @@ def balance_sample_screen(dataset):
     return: n number of sampels from dataset 
     """
     data , y = dataset[:][0], dataset[:][1]['y']
-    
     dataset_N = np.array(data[ y == 0])
     dataset_T = np.array(data[ y == 1])
-    n = min(dataset_N.shape[0],dataset_T.shape[0])
+    return np.array(dataset_N, dtype=np.float32), np.array(dataset_T, dtype=np.float32) 
+    
+    
+def balance_sample(dataset):
+    dataset_N, dataset_T, target= dataset 
+    n = min(dataset_N.shape[0],dataset_T.shape[0],target.shape[0])
     np.random.seed(41) # reproduceable 
     idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
     idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
-    # idx_N= np.random.randint(0,dataset_N.shape[0], n)
-    # idx_T= np.random.randint(0,dataset_T.shape[0], n)
-    # out_dict = {}
-    # out_dict["y"] = np.array(y[y == cond], dtype=np.int64)
-    # return np.array(datasample[idx], dtype=np.float32), out_dict
-    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
+    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32), np.array(target[idx_T], dtype=np.float32)
 
 
 
@@ -382,8 +381,3 @@ class LabelGeneDataset(Dataset):
         out_dict = {}
         out_dict["y"] = np.array(self.label[idx], dtype=np.int64)
         return np.array(self.dataset[idx], dtype=np.float32), out_dict
-
-
-def matched_samples(filepath):
-    df = pd.read_csv(filepath)
-    return df

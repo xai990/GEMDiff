@@ -526,7 +526,7 @@ class DenoiseDiffusion():
                 intermediates.append(out["sample"])
             seq = out["sample"]
         final = out["sample"]
-        return final, intermediates if return_intermediates else final
+        return (final, intermediates) if return_intermediates else final
            
 
 
@@ -566,7 +566,7 @@ class DenoiseDiffusion():
                 intermediates.append(out["sample"])
             x = out["sample"]
         latent = out["sample"]
-        return latent, intermediates if return_intermediates else latent
+        return (latent, intermediates) if return_intermediates else latent
 
 
 def _extract_into_tensor(arr, timesteps, broadcast_shape):
