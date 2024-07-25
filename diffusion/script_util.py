@@ -264,14 +264,14 @@ def showdata(dataset,
         q_i = x_ump[:len(dataset_N)]
         q_x = x_ump[len(dataset_N):]
         # use Silhouette Score as standard for the plot 
-        score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
-        logger.info("*********************************************************")
-        logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
-        logger.info("*********************************************************")
-        titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
+        # score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
+        # logger.info("*********************************************************")
+        # logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
+        # logger.info("*********************************************************")
+        # titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
         axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
         axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
-        axs.set_title(titles[0])
+        # axs.set_title(titles[0])
         axs.axis('off')
         plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
         # ax.axes.xaxis.set_ticklabels([])
@@ -523,3 +523,6 @@ def get_silhouettescore(
     label_silhoutette = np.vstack((np.zeros((len(embed_q1),1)), np.ones((len(embed_q2),1))))
     score = silhouette_score(x_silhoutette, label_silhoutette)
     return score 
+
+
+
