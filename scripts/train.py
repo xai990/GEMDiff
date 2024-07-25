@@ -34,6 +34,8 @@ def main(args):
     config = OmegaConf.merge(basic_conf, input_conf)
     
     # load data 
+    logger.info(f"The args gene set is: {args.gene_set}")
+
     train_data, test_data = load_data(data_dir = config.data.data_dir,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
