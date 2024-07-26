@@ -1,7 +1,12 @@
 import argparse
 from omegaconf import OmegaConf
 from diffusion import logger, dist_util
-from diffusion.datasets import load_data, data_loader, balance_sample_screen,LabelGeneDataset
+from diffusion.datasets import (load_data, 
+    data_loader, 
+    sample_screen,
+    LabelGeneDataset,
+    balance_sample
+)
 from diffusion.script_util import (
     model_and_diffusion_defaults,
     showdata,
@@ -37,26 +42,20 @@ def main(args):
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
     )
-    # balance the train and test data 
-    train_N, train_T = balance_sample_screen(train_data)
-    test_N, test_T = balance_sample_screen(test_data)
+    # separate the tumor and normal data
+    train_N, train_T = sample_screen(train_data)
+    test_N, test_T = sample_screen(test_data)
     # set the model param
     
     logger.log("creating model and diffusion ... ")
-    config.model.feature_size = train_N.shape[-1]
     logger.info(f"The model feature size is : {config.model.feature_size}")
     config.model.patch_size = config.model.feature_size
     # config.model.n_embd = config.model.patch_size * 8
-    config.model.n_embd = config.model.patch_size * 2
-    # config.model.class_cond = False # not specific the label during the training in perturbation task
+    config.model.n_embd = config.model.patch_size * 4
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
-    # model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
-    # model.to(dist_util.dev())
-    # logger.info(model)
-    # ema = deepcopy(model).to(dist_util.dev())  # Create an EMA of the model for use after training
-    # requires_grad(ema, False)
+
     if args.model_dir is None:
         model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
         model_N.to(dist_util.dev())
@@ -85,8 +84,6 @@ def main(args):
                     target_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
                 # logger.debug(f"target_t is : {target_y}")
                 batch_size = batch.shape[0]
-                # t = th.randint(0,config.diffusion.diffusion_steps,size=(batch_size//2,),dtype=th.int32)
-                # t = th.cat([t,config.diffusion.diffusion_steps-1-t],dim=0)
                 t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
                 losses = diffusion.loss(model_N,
                                         batch.to(dist_util.dev()),
@@ -139,7 +136,6 @@ def main(args):
                 source_y = {}
                 if config.model.class_cond:
                     source_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
-                
                 batch_size = batch.shape[0]
                 t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
                 losses = diffusion.loss(model_T,
@@ -196,21 +192,24 @@ def main(args):
         model_kwargs=source_label,
         # device=dist_util.dev(),
     )
-    # noise_T = th.randn_like(train_N).to(dist_util.dev())
+    # logger.debug(f"The len of noise_T is:{len(noise_T)}")
     target_label = {}
     if config.model.class_cond:
         target_label['y'] = th.zeros(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
     target = diffusion.ddim_sample_loop(ema_N,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
-    np.savez(out_path, target.cpu().numpy())
+    target = target.cpu().numpy()
+    np.savez(out_path, target)
     logger.log(f"saving perturb data array to {out_path}")
     logger.log("visulize the perturbed data and real data")
+    
     plotdata = [test_N, test_T, target] if args.vaild else [train_N, train_T, target]
-    showdata(plotdata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
+    balancedata = balance_sample(plotdata)
+    showdata(balancedata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
     
     logger.log("filter the perturbed gene -- 1 std")
-    gene_index = filter_gene(test_T if args.vaild else train_T, target.cpu().numpy())
+    gene_index = filter_gene(test_T if args.vaild else train_T, target)
     # gene_index = filter_gene(train_T, target.cpu().numpy())
     # logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
     if args.vaild:
@@ -282,7 +281,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/mrna_16.yaml")
     parser.add_argument("--dir", type=str, default=None)
-    parser.add_argument("--gene_set", type=str, default=None)
+    parser.add_argument("--gene_set", type=str, default="Random")
     parser.add_argument("--model_dir", type=str, default=None)
     parser.add_argument("--vaild", action='store_true')
     args = parser.parse_args()

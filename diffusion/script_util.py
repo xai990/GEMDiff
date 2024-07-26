@@ -11,7 +11,7 @@ import numpy as np
 import plotly.graph_objects as go
 import random
 from sklearn.metrics import silhouette_score 
-from .datasets import balance_sample_screen
+# from .datasets import balance_sample_screen
 
 
 NUM_CLASSES = 2
@@ -252,33 +252,33 @@ def showdata(dataset,
         plt.subplots_adjust(wspace=0., hspace=0.)
         plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
         plt.close()
-    elif schedule_plot == "balance":
-        # logger.debug(f"The dataset is : {dataset[:][1]} -- script_util") 
-        color_map = ['blue','orange']
-        fig,axs = plt.subplots()
-        labels = ['normal','tumor']
-        dataset_N,dataset_T = balance_sample_screen(dataset)
-        samples = dataset_N.shape[0]
-        data_merge = np.vstack([dataset_N,dataset_T])
-        x_ump = reducer.fit_transform(data_merge)
-        q_i = x_ump[:len(dataset_N)]
-        q_x = x_ump[len(dataset_N):]
-        # use Silhouette Score as standard for the plot 
-        # score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
-        # logger.info("*********************************************************")
-        # logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
-        # logger.info("*********************************************************")
-        # titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
-        axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
-        axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
-        # axs.set_title(titles[0])
-        axs.axis('off')
-        plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
-        # ax.axes.xaxis.set_ticklabels([])
-        # ax.axes.yaxis.set_ticklabels([])
-        plt.tight_layout()
-        plt.savefig(f"{dir}/{geneset}_{data_merge.shape[-1]}.png")
-        plt.close()
+    # elif schedule_plot == "balance":
+    #     # logger.debug(f"The dataset is : {dataset[:][1]} -- script_util") 
+    #     color_map = ['blue','orange']
+    #     fig,axs = plt.subplots()
+    #     labels = ['normal','tumor']
+    #     dataset_N,dataset_T = balance_sample_screen(dataset)
+    #     samples = dataset_N.shape[0]
+    #     data_merge = np.vstack([dataset_N,dataset_T])
+    #     x_ump = reducer.fit_transform(data_merge)
+    #     q_i = x_ump[:len(dataset_N)]
+    #     q_x = x_ump[len(dataset_N):]
+    #     # use Silhouette Score as standard for the plot 
+    #     # score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
+    #     # logger.info("*********************************************************")
+    #     # logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
+    #     # logger.info("*********************************************************")
+    #     # titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
+    #     axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
+    #     axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
+    #     # axs.set_title(titles[0])
+    #     axs.axis('off')
+    #     plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
+    #     # ax.axes.xaxis.set_ticklabels([])
+    #     # ax.axes.yaxis.set_ticklabels([])
+    #     plt.tight_layout()
+    #     plt.savefig(f"{dir}/{geneset}_{data_merge.shape[-1]}.png")
+    #     plt.close()
         """
         # Setup the subplot grid
         fig, axes = plt.subplots(nrows=len(n_neighbors_options), ncols=len(min_dist_options), figsize=(15, 15))
@@ -450,7 +450,7 @@ def showdata(dataset,
         """
     elif schedule_plot == "perturb":
         dataset_N, dataset_T, target = dataset 
-        x_merged = np.vstack([dataset_N,dataset_T, target.cpu().numpy()])
+        x_merged = np.vstack([dataset_N,dataset_T, target])
         x_ump = reducer.fit_transform(x_merged)
         q_n = x_ump[:len(dataset_N)]
         q_t = x_ump[len(dataset_N):len(dataset_N)*2]
@@ -508,13 +508,13 @@ def get_silhouettescore(
     gene_set = None,
 ):
     
-    if embed_q1 is None or embed_q2 is None:
-        dataset_N, dataset_T =  balance_sample_screen(dataset)
-        data_merge = np.vstack([dataset_N,dataset_T])
-        reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
-        umap_embed = reducer.fit_transform(data_merge)
-        embed_q1 = umap_embed[:len(dataset_N)]
-        embed_q2 = umap_embed[len(dataset_N):]
+    # if embed_q1 is None or embed_q2 is None:
+    #     dataset_N, dataset_T =  balance_sample_screen(dataset)
+    #     data_merge = np.vstack([dataset_N,dataset_T])
+    #     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
+    #     umap_embed = reducer.fit_transform(data_merge)
+    #     embed_q1 = umap_embed[:len(dataset_N)]
+    #     embed_q2 = umap_embed[len(dataset_N):]
     q_i = embed_q1
     q_x = embed_q2
     # use Silhouette Score as standard for the plot 

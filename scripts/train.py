@@ -34,6 +34,8 @@ def main(args):
     config = OmegaConf.merge(basic_conf, input_conf)
     
     # load data 
+    logger.info(f"The args gene set is: {args.gene_set}")
+
     train_data, test_data = load_data(data_dir = config.data.data_dir,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
@@ -55,7 +57,7 @@ def main(args):
     ## need to reconsider the patch size 
     ## here is a hard way, make the patch size is equal to the feature size
     config.model.patch_size = config.model.feature_size
-    config.model.n_embd = config.model.patch_size * 4
+    config.model.n_embd = config.model.patch_size * 8
     
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
@@ -161,6 +163,6 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/mrna_16.yaml")
     parser.add_argument("--dir", type=str, default=None)
-    parser.add_argument("--gene_set", type=str, default=None)
+    parser.add_argument("--gene_set", type=str, default="Random")
     args = parser.parse_args()
     main(args)

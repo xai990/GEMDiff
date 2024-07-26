@@ -4,11 +4,10 @@ data:
   
 model:
   class_cond: True
-  dropout: 0.1
-  n_layer: 8
-  patch_size: 256
+  dropout: 0.0
+  n_layer: 4
   n_head: 4
-  feature_size: 256
+  feature_size: 32
   
 diffusion:
   noise_schedule: cosine
@@ -16,7 +15,6 @@ diffusion:
   # linear_end: 6
   diffusion_steps: 1000
   log_every_t: 10
-  learn_sigma: True 
   
 train:
   lr: 0.00003
@@ -25,3 +23,4 @@ train:
   schedule_plot: False
   # log_interval: 100
   # save_interval: 1
+

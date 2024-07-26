@@ -35,7 +35,7 @@ def main(args):
     
     logger.log("Load model ... ")
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
-    model.load_state_dict(state_dict["model"])
+    model.load_state_dict(state_dict["ema"]) # ema or model state
     model.to(dist_util.dev())
     model.eval()
     
@@ -103,9 +103,7 @@ def create_config():
         "sample":{
             "batch_size": 128,
             "num_samples": 800,
-            "model_path": 250,
-            "clip_denoised": False,
-            "use_ddim": True,
+            "use_ddim": False,
         }
     }
     

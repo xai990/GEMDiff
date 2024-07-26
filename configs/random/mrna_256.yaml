@@ -5,10 +5,9 @@ data:
 model:
   class_cond: True
   dropout: 0.1
-  n_layer: 6
-  patch_size: 128
+  n_layer: 8
   n_head: 4
-  feature_size: 128
+  feature_size: 256
   
 diffusion:
   noise_schedule: cosine

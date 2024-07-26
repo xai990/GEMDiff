@@ -1,25 +1,33 @@
 #!/bin/bash
 
-#SBATCH --job-name={{JOB_NAME}}       # Set the job name
+#SBATCH --job-name=emt       # Set the job name
 #SBATCH --nodes 1
-#SBATCH --tasks-per-node 2
-#SBATCH --cpus-per-task 8
+#SBATCH --tasks-per-node 1
+#SBATCH --cpus-per-task 4
 #SBATCH --mem 32gb
-#SBATCH --time 02:00:00
+#SBATCH --gpus a100:1
+#SBATCH --time 48:00:00
+
+# set -e 
 
 # This should be the directory where you cloned the DDPM-mRNA-augmentation repository
 DDPM_DIR="/scratch/xai/DDPM-mRNA-augmentation-light"
 
-#Create conda environment from instructions in DDPM-mRNA-augmentation readme
+
+
+# Create conda environment from instructions in DDPM-mRNA-augmentation readme
 module purge
 module load anaconda3/2023.09-0
 source activate DDIM 
 
 # Move to the python package directory 
 cd ${DDPM_DIR}
+
 # config file path 
-LOG_PATH={{LOG_PATH}}
-GENE_PATH={{GENE_PATH}}
+CONFIG_PATH="configs/mrna_emt.yaml"
+LOG_PATH="log/emt"
+GENE_PATH="geneset/emt/FARRELL_T01"
+
 # Define the pattern to search for .egg-info directories
 egg_info_pattern="*.egg-info"
 
@@ -30,4 +38,5 @@ else
     pip install -e .
 fi
 
-python scripts/gene.py --dir $LOG_PATH --gene_set $GENE_PATH
+
+python scripts/perturb.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH --vaild
