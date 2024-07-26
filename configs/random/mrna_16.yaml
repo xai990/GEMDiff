@@ -1,0 +1,25 @@
+data:
+  data_dir: "datasets/"
+  dir_out: "results"
+  
+model:
+  class_cond: True
+  dropout: 0.0
+  n_layer: 4
+  n_head: 2
+  feature_size: 16
+  
+diffusion:
+  noise_schedule: "cosine"
+  linear_start: 0.0001 
+  linear_end: 0.0195
+  diffusion_steps: 1000
+  log_every_t: 10
+  
+train:
+  lr: 0.00003
+  # num_epoch: 1
+  batch_size: 16
+  schedule_plot: False
+  # log_interval: 100
+  # save_interval: 1
