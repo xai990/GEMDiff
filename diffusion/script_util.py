@@ -453,8 +453,8 @@ def showdata(dataset,
         x_merged = np.vstack([dataset_N,dataset_T, target])
         x_ump = reducer.fit_transform(x_merged)
         q_n = x_ump[:len(dataset_N)]
-        q_t = x_ump[len(dataset_N):len(dataset_N)*2]
-        q_x = x_ump[len(dataset_N)*2:]
+        q_t = x_ump[len(dataset_N):(len(dataset_N)+len(dataset_T))]
+        q_x = x_ump[(len(dataset_N)+len(dataset_T)):]
         fig,ax = plt.subplots()      
         ax.scatter(q_n[:,0],q_n[:,1],color = 'blue',edgecolor='white',label="real normal")
         ax.scatter(q_t[:,0],q_t[:,1],color = 'orange',edgecolor='white',label="real tumor")
