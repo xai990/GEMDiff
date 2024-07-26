@@ -1,6 +1,6 @@
 #!/bin/bash 
 
-CONFIG_DIR="configs"
+CONFIG_DIR="configs/random/"
 SLURM_TEMPLATE="experiments/ddpm_train.sh"
 GENE_PATH="Random"
 JOB_DIR="jobs/"

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#SBATCH --job-name={{JOB_NAME}}       # Set the job name
+#SBATCH --job-name=emt       # Set the job name
 #SBATCH --nodes 1
 #SBATCH --tasks-per-node 1
 #SBATCH --cpus-per-task 4
