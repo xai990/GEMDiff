@@ -24,10 +24,9 @@ source activate DDIM
 cd ${DDPM_DIR}
 
 # config file path 
-CONFIG_PATH={{CONFIG_PATH}}
+RESULT_PATH={{RESULT_PATH}}
 LOG_PATH={{LOG_PATH}}
-GENE_PATH={{GENE_PATH}}
-
+MODEL_PATH={{MODEL_PATH}}
 # Define the pattern to search for .egg-info directories
 egg_info_pattern="*.egg-info"
 
@@ -39,4 +38,4 @@ else
 fi
 
 
-python scripts/sample.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH 
+python scripts/sample.py --dir $LOG_PATH --model_path $MODEL_PATH --dir_out $RESULT_PATH

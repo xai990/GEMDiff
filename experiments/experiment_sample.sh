@@ -3,7 +3,6 @@
 LOG_DIR="log"
 FILE_PATTERN="model40000.pt"
 SLURM_TEMPLATE="experiments/ddpm_sample.sh"
-GENE_PATH="Random"
 JOB_DIR="jobs"
 CONFIG_DIR="configs/random/"
 
@@ -16,12 +15,12 @@ for CONFIG_FILE in "$CONFIG_DIR"/*.yaml; do
     LOG_PATH="log/${JOB_NAME}"
     RESULT_PATH="results/${JOB_NAME}"
     # replace the key for each SLURM job 
-    sed -e "s|{{RESULT_PATH}}|$RESULT_PATH|" -e "s|{{JOB_NAME}}|$JOB_NAME|" -e "s|{{LOG_PATH}}|\"$LOG_PATH\"|" "$SLURM_TEMPLATE" > "$SLURM_SCRIPT"   
+    sed -e "s|{{JOB_NAME}}|$JOB_NAME|" -e "s|{{LOG_PATH}}|\"$LOG_PATH\"|" "$SLURM_TEMPLATE" > "$SLURM_SCRIPT"   
     # find the save model 
     model=$(find "$LOG_DIR/$JOB_NAME" -type f -name "$FILE_PATTERN" -print -quit)
     echo "Processing .pt file: $model"
     sed -i "s|{{MODEL_PATH}}|\"$model\"|" "$SLURM_SCRIPT"
-    sed -i "s|{{GENE_PATH}}|\"$GENE_PATH\"|" "$SLURM_SCRIPT"
+    sed -i "s|{{RESULT_PATH}}|\"$RESULT_PATH\"|" "$SLURM_SCRIPT"
     # submit the qsub job 
     sbatch "$SLURM_SCRIPT"
     mv "$SLURM_SCRIPT" "$JOB_DIR"
