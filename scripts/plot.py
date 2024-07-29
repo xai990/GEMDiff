@@ -41,7 +41,7 @@ def main(args):
     file_path = args.sample_path
     data_fake = np.load(file_path)
     logger.log("Plot the synthesis data with UMAP")
-    showdata(dataset,dir = args.dir_out, schedule_plot = "reverse", synthesis_data=data_fake)
+    showdata(train_data,dir = args.dir_out, schedule_plot = "reverse", synthesis_data=data_fake)
     
     logger.log("plot complete...")
 
