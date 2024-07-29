@@ -329,7 +329,7 @@ def showdata(dataset,
         # stack the data together for overarching patterns 
         data_merged = np.vstack([data_r,data_f])
         fig,ax = plt.subplots()
-        color_map = ['blue','orange','hotpink','blueviolet']
+        color_map = ['blue','orange','cyan','blueviolet']
         labels = ['real_normal','real_tumor','fake_normal', 'fake_turmor']
         
         q_i = reducer.fit_transform(data_merged)
