@@ -15,7 +15,7 @@ diffusion:
   # linear_end: 6
   diffusion_steps: 1000
   log_every_t: 10
-  learn_sigma: True 
+  # learn_sigma: True 
   
 train:
   lr: 0.00003

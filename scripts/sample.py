@@ -102,7 +102,7 @@ def create_config():
         },
         "sample":{
             "batch_size": 128,
-            "num_samples": 800,
+            "num_samples": 300,
             "use_ddim": False,
         }
     }

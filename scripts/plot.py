@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 from diffusion import dist_util, logger
 from diffusion.script_util import showdata, find_model, create_model_and_diffusion
 from diffusion.datasets import load_data
-
+import datetime 
 
 def main(args):
     logger.configure(dir=args.dir)
@@ -29,7 +29,7 @@ def main(args):
     # test_N, test_T = balance_sample_screen(test_data)
     # logger.debug(f"The shape of trian data is {train_data[:][0].shape}")
     # logger.log("Plot the original dataset with UMAP")
-    # showdata(train_data,dir = args.dir_out, schedule_plot = "reverse",)     
+    # showdata(train_data,dir = args.dir_out, schedule_plot = "origin",n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)     
     # logger.log("Plot the forward diffsuion process with UMAP")
     # showdata(dataset,
     #          dir = dir_out,
@@ -41,7 +41,8 @@ def main(args):
     file_path = args.sample_path
     data_fake = np.load(file_path)
     logger.log("Plot the synthesis data with UMAP")
-    showdata(train_data,dir = args.dir_out, schedule_plot = "reverse", synthesis_data=data_fake)
+    out_path = os.path.join(args.dir_out,datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+    showdata(test_data,dir = out_path, schedule_plot = "reverse", synthesis_data=data_fake,n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
     
     logger.log("plot complete...")
 
@@ -78,7 +79,7 @@ def create_config():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/random/mrna_16.yaml")
+    parser.add_argument("--config", type=str, default="configs/random/mrna_256.yaml")
     parser.add_argument("--dir_out", type=str, default="results/")
     parser.add_argument("--dir", type=str, default="log/")
     parser.add_argument("--sample_path", type=str, default=None)
