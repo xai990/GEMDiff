@@ -516,13 +516,13 @@ def get_silhouettescore(
     gene_set = None,
 ):
     
-    # if embed_q1 is None or embed_q2 is None:
-    #     dataset_N, dataset_T =  balance_sample_screen(dataset)
-    #     data_merge = np.vstack([dataset_N,dataset_T])
-    #     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
-    #     umap_embed = reducer.fit_transform(data_merge)
-    #     embed_q1 = umap_embed[:len(dataset_N)]
-    #     embed_q2 = umap_embed[len(dataset_N):]
+    if embed_q1 is None or embed_q2 is None:
+        dataset_N, dataset_T =  sample_screen(dataset)
+        data_merge = np.vstack([dataset_N,dataset_T])
+        reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
+        umap_embed = reducer.fit_transform(data_merge)
+        embed_q1 = umap_embed[:len(dataset_N)]
+        embed_q2 = umap_embed[len(dataset_N):]
     q_i = embed_q1
     q_x = embed_q2
     # use Silhouette Score as standard for the plot 
