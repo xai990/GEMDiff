@@ -277,7 +277,7 @@ class GeneRandom():
             np.random.seed(self.seed)
         # random select the gene 
         if self.features <= sample.shape[-1]:
-            idx = np.random.randint(0,sample.shape[-1], self.features)
+            idx= np.random.choice(range(0,sample.shape[-1]), self.features, replace=False)
             return np.array(sample[:,idx], dtype=np.float32), columns[idx]
         return np.array(sample[:,:], dtype=np.float32), columns
         # return sample[:,:,idx]
