@@ -9,7 +9,6 @@ import blobfile as bf
 import random
 # SEED = None 
 SEED = 1234
-# SEED = 3456
 
 
 
@@ -173,7 +172,8 @@ class CustomGeneDataset(Dataset):
         self.gene = gene
         self.label = label
         self.index = df.index
-        
+        logger.info(f"The selected genes are: {columns} -- dataset")
+                
 
     def __len__(self):
         return len(self.gene)
@@ -354,12 +354,12 @@ def sample_screen(dataset):
     
     
 def balance_sample(dataset):
-    dataset_N, dataset_T, target= dataset 
-    n = min(dataset_N.shape[0],dataset_T.shape[0],target.shape[0])
+    dataset_N, dataset_T= dataset 
+    n = min(dataset_N.shape[0],dataset_T.shape[0])
     np.random.seed(41) # reproduceable 
     idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
     idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
-    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32), np.array(target[idx_T], dtype=np.float32)
+    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
 
 
 

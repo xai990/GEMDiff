@@ -488,20 +488,20 @@ def filter_gene(real, perturb):
     assert real.shape == perturb.shape, f'The datashape of real and perturbed are different'
     # Calculate the difference between the corresponding gene
     differences = np.abs(real - perturb).mean(axis=0)
-    
+    logger.log(f"The differences between real and perturb data {differences} -- script_util")
     # Calculate the standard deviation of the differences for each gene 
     std_deviation = np.std(differences)
-    logger.log(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
+    logger.log(f"The standard deviation between real and perturb data data {std_deviation} -- script_util")
     # fileter columns where the difference is greater than 1 standard deviation 
     perturb_mean = differences.mean()
-    logger.log(f"The mean between perturb and pre-perturb data {perturb_mean} -- script_util")
+    logger.log(f"The mean between real and perturb data data {perturb_mean} -- script_util")
     # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
     index_array = np.arange(0,real.shape[1])
     filter_index = differences > perturb_mean + std_deviation
     perturb_perc = np.divide(differences, real.mean(axis=0))
     logger.log(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
     logger.log(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
-    logger.log(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
+    logger.log(f"The perturbation percentages between real and perturb data data {perturb_perc[filter_index]}-- script_util")
     return index_array[filter_index]
 
 
