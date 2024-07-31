@@ -8,7 +8,7 @@
 #SBATCH --time 24:00:00
 
 # This should be the directory where you cloned the DDPM-mRNA-augmentation repository
-DDPM_DIR="/scratch/DDPM-mRNA-augmentation-light"
+DDPM_DIR="/scratch/xai/DDPM-mRNA-augmentation-light"
 
 #Create conda environment from instructions in DDPM-mRNA-augmentation readme
 module purge
@@ -29,7 +29,7 @@ else
     # install and build the package environment 
     pip install -e .
 fi
-for ((i=812;i<1000;i++))
+for ((i=982;i<984;i++))
 do 
     LOG_PATH="${LOG_DIR}/${i}"
     python scripts/gene.py --dir $LOG_PATH 
