@@ -205,12 +205,10 @@ def main(args):
     logger.log("visulize the perturbed data and real data")
     
     plotdata = [test_N, test_T, target] if args.vaild else [train_N, train_T, target]
-    balancedata = balance_sample(plotdata)
-    showdata(balancedata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
+    showdata(plotdata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
     
     logger.log("filter the perturbed gene -- 1 std")
     gene_index = filter_gene(test_T if args.vaild else train_T, target)
-    # gene_index = filter_gene(train_T, target.cpu().numpy())
     # logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
     if args.vaild:
         logger.log(f"The indentified genes are: {test_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {test_N.shape[1]} gene")

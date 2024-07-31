@@ -36,19 +36,17 @@ def main(args):
                 class_cond=config.data.cond,
                 gene_set = args.gene_set,
     )
-    score = get_silhouettescore(train,n_neighbors = config.umap.n_neighbors,min_dist = config.umap.min_dist)
-    experiment = args.gene_set if args.gene_set else "Random"
-    
-    logger.log(f"{experiment} experiemnt of silhouette score: {score}")
-    
+    # score = get_silhouettescore(train,n_neighbors = config.umap.n_neighbors,min_dist = config.umap.min_dist,balance = config.data.balance)
+    # experiment = args.gene_set if args.gene_set else "Random"
     
     # umap plot 
     showdata(train,
             dir = get_blob_logdir(),
-            schedule_plot = "origin",
+            schedule_plot = "balance" if config.data.balance else "origin",
             n_neighbors = config.umap.n_neighbors,
             min_dist = config.umap.min_dist,
             gene_set = args.gene_set,
+
     )
     
     logger.log("gene selection complete...")
@@ -61,6 +59,7 @@ def create_config():
             "data_dir": "datasets",
             "cond": True,
             "gene_select": 16,
+            "balance": True,
         },
         "umap":{
             "n_neighbors": 90,
