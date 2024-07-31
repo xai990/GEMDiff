@@ -11,7 +11,7 @@ import numpy as np
 import plotly.graph_objects as go
 import random
 from sklearn.metrics import silhouette_score 
-from .datasets import sample_screen
+from .datasets import sample_screen, balance_sample
 
 
 NUM_CLASSES = 2
@@ -269,11 +269,11 @@ def showdata(dataset,
         q_i = x_ump[:len(dataset_N)]
         q_x = x_ump[len(dataset_N):]
         # use Silhouette Score as standard for the plot 
-        # score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
-        # logger.info("*********************************************************")
-        # logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
-        # logger.info("*********************************************************")
-        # titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
+        score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
+        logger.info("*********************************************************")
+        logger.log(f"{geneset} experiemnt of silhouette score: {score}")
+        logger.info("*********************************************************")
+        titles = [f"Geneset {geneset} with silhouette score {score:.3f}"]
         axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
         axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
         # axs.set_title(titles[0])
@@ -281,7 +281,7 @@ def showdata(dataset,
         plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
         # ax.axes.xaxis.set_ticklabels([])
         # ax.axes.yaxis.set_ticklabels([])
-        plt.tight_layout()
+        plt.tight_layout(pad=1.0)
         plt.savefig(f"{dir}/{geneset}_{data_merge.shape[-1]}.png")
         plt.close()
         """
@@ -514,10 +514,13 @@ def get_silhouettescore(
     min_dist = 0.1,
     random_state = 41,
     gene_set = None,
+    balance=False,
 ):
     
     if embed_q1 is None or embed_q2 is None:
         dataset_N, dataset_T =  sample_screen(dataset)
+        if balance:
+            dataset_N, dataset_T = balance_sample([dataset_N, dataset_T])
         data_merge = np.vstack([dataset_N,dataset_T])
         reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
         umap_embed = reducer.fit_transform(data_merge)
