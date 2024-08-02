@@ -259,21 +259,16 @@ def showdata(dataset,
         fig,axs = plt.subplots()
         labels = ['normal','tumor']
         dataset_N,dataset_T = sample_screen(dataset)
-        n = min(dataset_N.shape[0],dataset_T.shape[0])
-        np.random.seed(41) # reproduceable 
-        idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
-        idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
-        dataset_N, dataset_T = np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
+        dataset_N, dataset_T = balance_sample([dataset_N,dataset_T])
         data_merge = np.vstack([dataset_N,dataset_T])
         x_ump = reducer.fit_transform(data_merge)
         q_i = x_ump[:len(dataset_N)]
         q_x = x_ump[len(dataset_N):]
         # use Silhouette Score as standard for the plot 
-        score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
-        logger.info("*********************************************************")
-        logger.log(f"{geneset} experiemnt of silhouette score: {score}")
-        logger.info("*********************************************************")
-        titles = [f"Geneset {geneset} with silhouette score {score:.3f}"]
+        # logger.info("*********************************************************")
+        # logger.log(f"{geneset} experiemnt of silhouette score: {score}")
+        # logger.info("*********************************************************")
+        # titles = [f"Geneset {geneset} with silhouette score {score:.3f}"]
         axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
         axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
         # axs.set_title(titles[0])
@@ -487,8 +482,11 @@ def find_model(model_name):
 def filter_gene(real, perturb):
     assert real.shape == perturb.shape, f'The datashape of real and perturbed are different'
     # Calculate the difference between the corresponding gene
+    logger.log(f"The real data {real.mean(axis=0)}-- script_util")
+    logger.log(f"The perturb data {perturb.mean(axis=0)}-- script_util")
     differences = np.abs(real - perturb).mean(axis=0)
     logger.log(f"The differences between real and perturb data {differences} -- script_util")
+    
     # Calculate the standard deviation of the differences for each gene 
     std_deviation = np.std(differences)
     logger.log(f"The standard deviation between real and perturb data data {std_deviation} -- script_util")
