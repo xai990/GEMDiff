@@ -18,7 +18,8 @@ source activate DDIM
 # Move to the python package directory 
 cd ${DDPM_DIR}
 # config file path 
-LOG_DIR="log/silhouette"
+LOG_DIR="log/silhouette_geneset_balance"
+GENE_DIR="geneset_score"
 # GENE_PATH={{GENE_PATH}}
 # Define the pattern to search for .egg-info directories
 egg_info_pattern="*.egg-info"
@@ -29,8 +30,19 @@ else
     # install and build the package environment 
     pip install -e .
 fi
-for ((i=0;i<1000;i++))
-do 
-    LOG_PATH="${LOG_DIR}/${i}"
-    python scripts/gene.py --dir $LOG_PATH --random
+
+for sub in "$GENE_DIR"/*; do
+    # Check if the item is a file and not a directory
+    if [ -d "$sub" ]; then
+        for GENE_SET in "$sub"/*; do
+            GENE_PATH=$(realpath "$GENE_SET")
+            if [[ "${filename,,}" =~ \.gmt$ ]]; then
+                JOB_NAME="$(basename "$GENE_SET" .gmt)"
+            else
+                JOB_NAME="$(basename "$GENE_SET")"
+            fi
+            LOG_PATH="${LOG_DIR}/${JOB_NAME}"
+            python scripts/gene.py --dir $LOG_PATH --gene_set $GENE_PATH --balance
+        done
+    fi
 done

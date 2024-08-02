@@ -18,7 +18,7 @@ source activate DDIM
 # Move to the python package directory 
 cd ${DDPM_DIR}
 # config file path 
-LOG_DIR="log/silhouette"
+LOG_DIR="log/silhouette_balance"
 # GENE_PATH={{GENE_PATH}}
 # Define the pattern to search for .egg-info directories
 egg_info_pattern="*.egg-info"
@@ -32,5 +32,5 @@ fi
 for ((i=0;i<1000;i++))
 do 
     LOG_PATH="${LOG_DIR}/${i}"
-    python scripts/gene.py --dir $LOG_PATH --random
+    python scripts/gene.py --dir $LOG_PATH --random --balance
 done
