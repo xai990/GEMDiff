@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task 4
 #SBATCH --mem 32gb
 #SBATCH --gpus a100:1
-#SBATCH --time 48:00:00
+#SBATCH --time 72:00:00
 
 # set -e 
 
@@ -24,7 +24,7 @@ source activate DDIM
 cd ${DDPM_DIR}
 
 # config file path 
-CONFIG_PATH="configs/mrna_emt.yaml"
+CONFIG_PATH="configs/emt/mrna_emt.yaml"
 LOG_PATH="log/emt"
 GENE_PATH="geneset/emt/FARRELL_T01"
 
@@ -39,4 +39,7 @@ else
 fi
 
 
-python scripts/perturb.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH --vaild
+# python scripts/train.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH
+
+python scripts/perturb.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH  --vaild
+

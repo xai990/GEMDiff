@@ -50,8 +50,8 @@ def main(args):
     logger.log("creating model and diffusion ... ")
     logger.info(f"The model feature size is : {config.model.feature_size}")
     config.model.patch_size = config.model.feature_size
-    # config.model.n_embd = config.model.patch_size * 8
-    config.model.n_embd = config.model.patch_size * 4
+    config.model.n_embd = config.model.patch_size * 8
+    # config.model.n_embd = config.model.patch_size * 4
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
@@ -167,6 +167,7 @@ def main(args):
                     logger.log(f"Saved checkpoint to {checkpoint_path}")
     else:
         # load the model from pretrain
+        """
         model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
         ema_N = deepcopy(model_N)
         model_T, _ = create_model_and_diffusion(**model_config, **diffusion_config)
@@ -179,13 +180,20 @@ def main(args):
         ema_T.load_state_dict(state_dict["ema"])
         ema_T.to(dist_util.dev())
         ema_T.eval()
-    
+        """
+        model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+        ema= deepcopy(model)
+        state_dict = th.load(f"{args.model_dir}/model40000.pt")
+        ema.load_state_dict(state_dict["ema"])
+        ema.to(dist_util.dev())
+        ema.eval()
+
     logger.log("pertubing the source to target")
     source_label = {}
     if config.model.class_cond:
         source_label['y'] = th.ones(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
     noise_T = diffusion.ddim_reverse_sample_loop(
-        ema_T,
+        ema,
         test_T.shape if args.vaild else train_T.shape,
         th.Tensor(test_T).float().to(dist_util.dev()) if args.vaild else th.Tensor(train_T).float().to(dist_util.dev()),
         clip_denoised=False,
@@ -196,7 +204,7 @@ def main(args):
     target_label = {}
     if config.model.class_cond:
         target_label['y'] = th.zeros(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
-    target = diffusion.ddim_sample_loop(ema_N,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
+    target = diffusion.ddim_sample_loop(ema,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
     target = target.cpu().numpy()
