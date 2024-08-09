@@ -352,6 +352,7 @@ def balance_sample(dataset):
     n = min(dataset_N.shape[0],dataset_T.shape[0])
     np.random.seed(41) # reproduceable 
     idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
+    np.random.seed(41) 
     idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
     return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
 
