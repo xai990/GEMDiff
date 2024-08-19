@@ -463,7 +463,7 @@ def showdata(dataset,
         ax.scatter(q_t[:,0],q_t[:,1],color = 'orange',edgecolor='white',label="real tumor")
         ax.scatter(q_x[:,0],q_x[:,1],color = 'cyan',edgecolor='white',label="perturb tumor")
         plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1))
-        plt.title("Perturb tumor mRNA expression back to normal with Diffusion model")
+        # plt.title("Perturb tumor mRNA expression back to normal with Diffusion model")
         ax.axis('off')
         plt.savefig(f"{dir}/UMAP_plot_perturb_{dataset_N.shape[-1]}.png")
         plt.close()
