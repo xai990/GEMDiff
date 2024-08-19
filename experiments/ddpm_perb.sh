@@ -27,7 +27,7 @@ cd ${DDPM_DIR}
 CONFIG_PATH={{CONFIG_PATH}}
 LOG_PATH={{LOG_PATH}}
 GENE_PATH={{GENE_PATH}}
-
+MODEL_DIR={{MODEL_DIR}}
 # Define the pattern to search for .egg-info directories
 egg_info_pattern="*.egg-info"
 
@@ -39,4 +39,4 @@ else
 fi
 
 
-python scripts/perturb.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH --vaild
+python scripts/perturb.py --config $CONFIG_PATH --dir $LOG_PATH --gene_set $GENE_PATH --model_dir $MODEL_DIR --vaild
