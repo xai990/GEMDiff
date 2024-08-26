@@ -11,7 +11,7 @@ import numpy as np
 import plotly.graph_objects as go
 import random
 from sklearn.metrics import silhouette_score 
-from .datasets import sample_screen
+from .datasets import sample_screen, balance_sample
 
 
 NUM_CLASSES = 2
@@ -259,21 +259,16 @@ def showdata(dataset,
         fig,axs = plt.subplots()
         labels = ['normal','tumor']
         dataset_N,dataset_T = sample_screen(dataset)
-        n = min(dataset_N.shape[0],dataset_T.shape[0])
-        np.random.seed(41) # reproduceable 
-        idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
-        idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
-        dataset_N, dataset_T = np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
+        dataset_N, dataset_T = balance_sample([dataset_N,dataset_T])
         data_merge = np.vstack([dataset_N,dataset_T])
         x_ump = reducer.fit_transform(data_merge)
         q_i = x_ump[:len(dataset_N)]
         q_x = x_ump[len(dataset_N):]
         # use Silhouette Score as standard for the plot 
-        # score = get_silhouettescore(dataset,embed_q1=q_i,embed_q2= q_x)
         # logger.info("*********************************************************")
-        # logger.info(f"The socre of {geneset} is {score:.3f} -- script_util")
+        # logger.log(f"{geneset} experiemnt of silhouette score: {score}")
         # logger.info("*********************************************************")
-        # titles = [f"Geneset {geneset}: {samples} samples with silhouette score {score:.3f}"]
+        # titles = [f"Geneset {geneset} with silhouette score {score:.3f}"]
         axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
         axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
         # axs.set_title(titles[0])
@@ -281,7 +276,7 @@ def showdata(dataset,
         plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
         # ax.axes.xaxis.set_ticklabels([])
         # ax.axes.yaxis.set_ticklabels([])
-        plt.tight_layout()
+        plt.tight_layout(pad=1.0)
         plt.savefig(f"{dir}/{geneset}_{data_merge.shape[-1]}.png")
         plt.close()
         """
@@ -329,7 +324,7 @@ def showdata(dataset,
         # stack the data together for overarching patterns 
         data_merged = np.vstack([data_r,data_f])
         fig,ax = plt.subplots()
-        color_map = ['blue','orange','hotpink','blueviolet']
+        color_map = ['blue','orange','cyan','blueviolet']
         labels = ['real_normal','real_tumor','fake_normal', 'fake_turmor']
         
         q_i = reducer.fit_transform(data_merged)
@@ -467,9 +462,13 @@ def showdata(dataset,
         ax.scatter(q_n[:,0],q_n[:,1],color = 'blue',edgecolor='white',label="real normal")
         ax.scatter(q_t[:,0],q_t[:,1],color = 'orange',edgecolor='white',label="real tumor")
         ax.scatter(q_x[:,0],q_x[:,1],color = 'cyan',edgecolor='white',label="perturb tumor")
-        plt.legend(loc="upper right", bbox_to_anchor=(1.1, 1))
-        plt.title("Perturb tumor mRNA expression back to normal with Diffusion model")
-        ax.axis('off')
+        plt.legend(loc="upper right")
+        # plt.title("Perturb tumor mRNA expression back to normal with Diffusion model")
+        # ax.axis('off')
+        ax.axes.xaxis.set_ticklabels([])
+        ax.axes.yaxis.set_ticklabels([])
+        plt.xlabel('UMAP 1')
+        plt.ylabel('UMAP 2')
         plt.savefig(f"{dir}/UMAP_plot_perturb_{dataset_N.shape[-1]}.png")
         plt.close()
     else:
@@ -487,21 +486,24 @@ def find_model(model_name):
 def filter_gene(real, perturb):
     assert real.shape == perturb.shape, f'The datashape of real and perturbed are different'
     # Calculate the difference between the corresponding gene
+    logger.log(f"The real data {real.mean(axis=0)}-- script_util")
+    logger.log(f"The perturb data {perturb.mean(axis=0)}-- script_util")
     differences = np.abs(real - perturb).mean(axis=0)
+    logger.log(f"The differences between real and perturb data {differences} -- script_util")
     
     # Calculate the standard deviation of the differences for each gene 
     std_deviation = np.std(differences)
-    logger.log(f"The standard deviation between perturb and pre-perturb data {std_deviation} -- script_util")
+    logger.log(f"The standard deviation between real and perturb data data {std_deviation} -- script_util")
     # fileter columns where the difference is greater than 1 standard deviation 
     perturb_mean = differences.mean()
-    logger.log(f"The mean between perturb and pre-perturb data {perturb_mean} -- script_util")
+    logger.log(f"The mean between real and perturb data data {perturb_mean} -- script_util")
     # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
     index_array = np.arange(0,real.shape[1])
     filter_index = differences > perturb_mean + std_deviation
     perturb_perc = np.divide(differences, real.mean(axis=0))
     logger.log(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
     logger.log(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
-    logger.log(f"The perturbation percentages between perturb and pre-perturb data {perturb_perc[filter_index]}-- script_util")
+    logger.log(f"The perturbation percentages between real and perturb data data {perturb_perc[filter_index]}-- script_util")
     return index_array[filter_index]
 
 
@@ -514,15 +516,18 @@ def get_silhouettescore(
     min_dist = 0.1,
     random_state = 41,
     gene_set = None,
+    balance=False,
 ):
     
-    # if embed_q1 is None or embed_q2 is None:
-    #     dataset_N, dataset_T =  balance_sample_screen(dataset)
-    #     data_merge = np.vstack([dataset_N,dataset_T])
-    #     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
-    #     umap_embed = reducer.fit_transform(data_merge)
-    #     embed_q1 = umap_embed[:len(dataset_N)]
-    #     embed_q2 = umap_embed[len(dataset_N):]
+    if embed_q1 is None or embed_q2 is None:
+        dataset_N, dataset_T =  sample_screen(dataset)
+        if balance:
+            dataset_N, dataset_T = balance_sample([dataset_N, dataset_T])
+        data_merge = np.vstack([dataset_N,dataset_T])
+        reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
+        umap_embed = reducer.fit_transform(data_merge)
+        embed_q1 = umap_embed[:len(dataset_N)]
+        embed_q2 = umap_embed[len(dataset_N):]
     q_i = embed_q1
     q_x = embed_q2
     # use Silhouette Score as standard for the plot 

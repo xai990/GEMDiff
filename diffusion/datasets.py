@@ -6,10 +6,7 @@ import pandas as pd
 import os 
 import numpy as np 
 import blobfile as bf
-import random
-# SEED = None 
-SEED = 1234
-# SEED = 3456
+
 
 
 
@@ -20,6 +17,7 @@ def load_data(
     gene_selection=None,
     dge = False,
     gene_set = None,
+    random=False,
 ):
     """ 
     For a dataset, create a generate over (seq, kwars) pairs
@@ -58,7 +56,7 @@ def load_data(
                                 target_transform=GeneLabelTransform(),
                                 scaler=True,
                                 filter=data_filter,
-                                random_selection=(GeneRandom(seed=SEED,features=gene_selection) if gene_selection else None),
+                                random_selection=(GeneRandom(random=random ,features=gene_selection) if gene_selection else None),
                                 dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
@@ -69,7 +67,7 @@ def load_data(
                                 target_transform=GeneLabelTransform(),
                                 scaler=True,
                                 filter=data_filter,
-                                random_selection=(GeneRandom(seed=SEED,features=gene_selection) if gene_selection else None),
+                                random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
                                 dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
@@ -173,7 +171,8 @@ class CustomGeneDataset(Dataset):
         self.gene = gene
         self.label = label
         self.index = df.index
-        
+        logger.info(f"The selected genes are: {columns} -- dataset")
+                
 
     def __len__(self):
         return len(self.gene)
@@ -262,25 +261,20 @@ class GeneLabelTransform():
 
 
 class GeneRandom():
-    def __init__(self, seed=None,features = 100):
-        self.seed = seed 
-        if self.seed is not None:
-            random.seed(seed)
-            np.random.seed(seed)
+    def __init__(self, random=True,features = 100):
+        self.random = random
         self.features = features 
         if isinstance(self.features, str):
             self.features = int(self.features)
   
     def __call__(self, sample, columns):
-        if self.seed is not None:
-            random.seed(self.seed)
-            np.random.seed(self.seed)
+        if self.random is not True:
+            np.random.seed(1234)
         # random select the gene 
         if self.features <= sample.shape[-1]:
-            idx = np.random.randint(0,sample.shape[-1], self.features)
+            idx= np.random.choice(range(0,sample.shape[-1]), self.features, replace=False)
             return np.array(sample[:,idx], dtype=np.float32), columns[idx]
         return np.array(sample[:,:], dtype=np.float32), columns
-        # return sample[:,:,idx]
         
 
 
@@ -354,12 +348,13 @@ def sample_screen(dataset):
     
     
 def balance_sample(dataset):
-    dataset_N, dataset_T, target= dataset 
-    n = min(dataset_N.shape[0],dataset_T.shape[0],target.shape[0])
+    dataset_N, dataset_T= dataset 
+    n = min(dataset_N.shape[0],dataset_T.shape[0])
     np.random.seed(41) # reproduceable 
     idx_N= np.random.choice(range(0,dataset_N.shape[0]), n, replace=False)
+    np.random.seed(41) 
     idx_T= np.random.choice(range(0,dataset_T.shape[0]), n, replace=False)
-    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32), np.array(target[idx_T], dtype=np.float32)
+    return np.array(dataset_N[idx_N], dtype=np.float32), np.array(dataset_T[idx_T], dtype=np.float32)
 
 
 
