@@ -4,9 +4,8 @@ CONFIG_FILE="configs/random/mrna_16.yaml"
 SLURM_TEMPLATE="experiments/ddpm_perb.sh"
 GENE_DIR="coregene/corelist"
 JOB_DIR="jobs/"
-LOG_DIR="/scratch/xai/log/DDPM-mRNA-augmentation-light/enrichment/hallmark"
+LOG_DIR="/scratch/xai/DDPM-mRNA-augmentation-light/log/enrichment/hallmark"
 FILE_PATTERN="model40000.pt"
-
 
 
 for GENE_SET in "$GENE_DIR"/*; do
