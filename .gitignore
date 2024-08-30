@@ -1,3 +1,5 @@
 jobs/
 coregene/
 datasets/
+DDPM_mRNA_augmentation_light.egg-info/
+diffusion/__pycache__/
