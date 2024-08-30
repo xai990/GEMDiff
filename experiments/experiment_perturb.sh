@@ -4,7 +4,7 @@ CONFIG_FILE="configs/random/mrna_16.yaml"
 SLURM_TEMPLATE="experiments/ddpm_perb.sh"
 GENE_DIR="coregene/corelist"
 JOB_DIR="jobs/"
-LOG_DIR="log/enrichment"
+LOG_DIR="/scratch/xai/log/DDPM-mRNA-augmentation-light/enrichment/hallmark"
 FILE_PATTERN="model40000.pt"
 
 
@@ -25,8 +25,8 @@ for GENE_SET in "$GENE_DIR"/*; do
     MODEL_DIR=$(dirname "$model")
     sed -i "s|{{MODEL_DIR}}|\"$MODEL_DIR\"|" "$SLURM_SCRIPT"
     # submit the qsub job 
-    # sbatch "$SLURM_SCRIPT"
-    # mv "$SLURM_SCRIPT" "$JOB_DIR"
+    sbatch "$SLURM_SCRIPT"
+    mv "$SLURM_SCRIPT" "$JOB_DIR"
 done
 
 

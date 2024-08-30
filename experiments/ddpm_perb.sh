@@ -11,7 +11,7 @@
 # set -e 
 
 # This should be the directory where you cloned the DDPM-mRNA-augmentation repository
-DDPM_DIR="/scratch/xai/DDPM-mRNA-augmentation-light"
+DDPM_DIR="Diffusion_Model/vscode/DDPM-mRNA-augmentation-light"
 
 
 
