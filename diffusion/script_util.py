@@ -483,7 +483,7 @@ def find_model(model_name):
 
 
 
-def filter_gene(real, perturb):
+def filter_gene(real, perturb, corerate=1):
     assert real.shape == perturb.shape, f'The datashape of real and perturbed are different'
     # Calculate the difference between the corresponding gene
     logger.log(f"The real data mean {real.mean(axis=0)}-- script_util")
@@ -501,7 +501,7 @@ def filter_gene(real, perturb):
     logger.log(f"The mean between real and perturb data data {perturb_mean} -- script_util")
     # filter_genecoln = [( differences > perturb_mean + std_deviation) | (differences < perturb_mean - std_deviation)]
     index_array = np.arange(0,real.shape[1])
-    filter_index = differences > perturb_mean + std_deviation
+    filter_index = differences > perturb_mean + corerate * std_deviation
     perturb_perc = np.divide(differences, real.mean(axis=0))
     logger.log(f"The real data {real.mean(axis=0)[filter_index]}-- script_util")
     logger.log(f"The perturb data {perturb.mean(axis=0)[filter_index]}-- script_util")
