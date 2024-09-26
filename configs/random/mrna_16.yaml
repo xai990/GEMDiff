@@ -1,6 +1,7 @@
 data:
   data_dir: "datasets/"
   dir_out: "results"
+  corerate: 1
   
 model:
   class_cond: True

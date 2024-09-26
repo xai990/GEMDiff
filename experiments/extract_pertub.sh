@@ -20,7 +20,7 @@
 # done 
 
 #!/bin/bash
-directory="log/enrichment/hallmark"
+directory="/scratch/xai/DDPM-mRNA-augmentation-light/log/enrichment/hallmark"
 output_csv="hallmark_gene.csv"
 
 file_name="log.*"
@@ -28,20 +28,20 @@ file_name="log.*"
 
 # Header for the CSV file
 echo "GeneSet,Mean,Standard Deviation,Identified Genes" > "$output_csv"
-
+counter=0
 # Loop through each file found in the directory
 find "$directory" -type f -name "$file_name" | while read -r file_path; do
-    
+    counter=$((counter + 1))
+    if [ $((counter % 4)) -ne 0 ]; then
+        continue
+    fi
     # Extract the relevant information
-    geneset=$(grep -oP '(?<=log/enrichment/)[^/]+' "$file_path")
+    geneset=$(grep -oP '(?<=log/enrichment/hallmark/)[^/]+' "$file_path" | head -n 1)
     mean=$(grep -oP 'The mean between real and perturb data data \K[0-9]+\.[0-9]+' "$file_path")
     std_dev=$(grep -oP 'The standard deviation between real and perturb data data \K[0-9]+\.[0-9]+' "$file_path")
     
     identified_genes=$(grep -oP "(?<=The indentified genes are: Index\(\[)[^]]+" "$file_path" | sed "s/', '/,/g" | sed "s/'//g")
     
-    # Check if all required values are present
-    if [ -n "$geneset" ] && [ -n "$identified_genes" ] && [ -n "$std_dev" ] && [ -n "$mean" ]; then
-        # Combine the values into a single line and append to the CSV file
-        echo "$geneset,$mean,$std_dev,$identified_genes" >> "$output_csv"
-    fi
+    # Combine the values into a single line and append to the CSV file
+    echo "$geneset,$mean,$std_dev,$identified_genes" >> "$output_csv"
 done
