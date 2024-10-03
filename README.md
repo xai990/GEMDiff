@@ -1,6 +1,6 @@
 # GEMDiff: A diffusion model bridge between normal and tumor Gene Expression Matrix
 
-This repository contains the code for the diffusion model and a neural network model, a breast cancer study case. 
+This repository contains the code for the diffusion model and a neural network model for a breast cancer study case. 
 ## Installation 
 
 GEMDiff is a collection of Python scripts. Recommand that run diffusion model on [Palmetto](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson university research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
@@ -9,16 +9,43 @@ GEMDiff is a collection of Python scripts. Recommand that run diffusion model on
 module load anaconda3/2022.05-gcc/9.5.0 
 
 # clone repository
-git clone https://github.com/xai990/DDPM-mRNA-augmentation.git
+git clone https://github.com/xai990/DGEMDiff.git
 
-cd DDPM-mRNA-augmentation
-# create conda environment called "DDPM"
+cd GEMDiff
+# create conda environment called "GEMDiff"
 conda env create -f environment.yml
 
+# activate the created conda environment
+source activate GEMDiff
+
 # install the package
-python setup.py install 
+pip install -e . 
 
-# run DDPM on breast cancer data  -- make sure the scripts are running on a computed node (an interactive job includes at least one gpu)
-python scripts/main.py
+```
+## Training 
+To train your model, there are some hyperparameters. We will split up our hyperparameters into three groups: model architecture, diffusion process, and training flags. We include some reasonable defaults for baseline [config files](configs):
 
+
+## Perparing data
+The training code reads gene expression matrix from a directory. The default datasets folder, include training and testing GEM files and corresponding label files. 
+
+For creating/inputting your own dataset, simply format the GEM into a plain-text file with rows being samples and columns being genes. Values in each row should be separeated by tabs. 
+```
+	Gene1	Gene2	Gene3	Gene4
+Sample1	0.523	0.991	0.421	0.829
+Sample2	8.891	7.673	3.333	9.103
+Sample3	4.444	5.551	6.102	0.013
+```
+The labels file should contain a label for each sample, corresponding to something such as a condition or phenotype state for the sample. This file should contain two columns, the first being the sample names and the second being the labels. Values in each row should be separated by tabs.
+
+```
+Sample1	Label1
+Sample2	Label2
+Sample3	Label3
+Sample4	Label4
+```
+
+The gene set list is optional. The file should contain the name and genes for a gene set. The file could be a GMT file or a plain format. Values on each row should be separated by tabs.
+```
+GeneSet1	Gene1	Gene2	Gene3
 ```
