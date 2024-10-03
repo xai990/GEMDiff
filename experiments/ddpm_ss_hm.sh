@@ -8,7 +8,7 @@
 #SBATCH --time 24:00:00
 
 # This should be the directory where you cloned the DDPM-mRNA-augmentation repository
-DDPM_DIR="/scratch/xai/DDPM-mRNA-augmentation-light"
+DDPM_DIR="/home/xai/Diffusion_Model/vscode/DDPM-mRNA-augmentation-light"
 
 #Create conda environment from instructions in DDPM-mRNA-augmentation readme
 module purge
@@ -18,8 +18,9 @@ source activate DDIM
 # Move to the python package directory 
 cd ${DDPM_DIR}
 # config file path 
-LOG_DIR="log/silhouette_balance"
-# GENE_PATH={{GENE_PATH}}
+LOG_DIR={{LOG_PATH}}
+GENE_PATH={{GENE_PATH}}
+CONFIG={{CONFIG}}
 # Define the pattern to search for .egg-info directories
 egg_info_pattern="*.egg-info"
 
@@ -32,5 +33,5 @@ fi
 for ((i=0;i<1000;i++))
 do 
     LOG_PATH="${LOG_DIR}/${i}"
-    python scripts/gene.py --dir $LOG_PATH --random --balance
+    python scripts/gene.py --dir $LOG_PATH --random --gene_set $GENE_PATH --config $CONFIG
 done
