@@ -23,7 +23,13 @@ pip install -e .
 
 ```
 ## Training 
-To train your model, there are some hyperparameters. We will split up our hyperparameters into three groups: model architecture, diffusion process, and training flags. We include some reasonable defaults for baseline [config files](configs):
+To train your model, there are some hyperparameters. We will split up our hyperparameters into three groups: model architecture, diffusion process, and training flags. We include some reasonable defaults for baseline [config files](configs) (You could also setup the paprameter by creating your own config file). Once you have setup your hyper-parameters, you can run an experiment like so:
+
+
+```
+
+python scripts/train.py --config "configs/random/mrna_16.yaml"
+```
 
 
 ## Perparing data
