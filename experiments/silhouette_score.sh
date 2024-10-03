@@ -1,9 +1,9 @@
 #!/bin/bash 
 
 
-directory="log/hallmark"
+directory="log/random/silhoutte/coregene/allhallmark/mrna_8.yaml/"
 search_word=" experiemnt of silhouette score:"
-output_csv="silhouette_score_hallmark.csv"
+output_csv="silhouette_score_randomHM8.csv"
 
 
 file_name="log.*"
