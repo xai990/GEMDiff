@@ -4,3 +4,5 @@ datasets/
 DDPM_mRNA_augmentation_light.egg-info/
 diffusion/__pycache__/
 log/
+*.out
+*.csv
