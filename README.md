@@ -1,10 +1,9 @@
-# DDPM-mRNA-augmentation-light
-# DDPM for breast cancer mRNA data augmentation 
+# GEMDiff: A diffusion model bridge between normal and tumor Gene Expression Matrix
 
-This repository contains the code for the diffusion model and a neural network model, specifically for breast cancer. 
+This repository contains the code for the diffusion model and a neural network model, a breast cancer study case. 
 ## Installation 
 
-DDPM is a collection of Python scripts. Recommand that run diffusion model on [Palmetto](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson university research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
+GEMDiff is a collection of Python scripts. Recommand that run diffusion model on [Palmetto](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson university research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
 ```bash
 # load Anaconda module if needed 
 module load anaconda3/2022.05-gcc/9.5.0 
