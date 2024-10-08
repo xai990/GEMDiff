@@ -22,14 +22,6 @@ source activate GEMDiff
 pip install -e . 
 
 ```
-## Training 
-To train your model, there are some hyperparameters. We will split up our hyperparameters into three groups: model architecture, diffusion process, and training flags. We include some reasonable defaults for baseline [config files](configs) (You could also setup the paprameter by creating your own config file). Once you have setup your hyper-parameters, you can run an experiment like so:
-
-
-```
-
-python scripts/train.py --config "configs/random/mrna_16.yaml"
-```
 
 
 ## Perparing data
@@ -55,3 +47,14 @@ The gene set list is optional. The file should contain the name and genes for a 
 ```
 GeneSet1	Gene1	Gene2	Gene3
 ```
+
+## Training 
+To train your model, there are some hyperparameters. We will split up our hyperparameters into three groups: model architecture, diffusion process, and training flags. We include some reasonable defaults for baseline [config files](configs) (You could also setup the paprameter by creating your own config file). Once you have setup your hyper-parameters, you can run an experiment like so:
+
+
+```
+python scripts/train.py --config "<config file path>"
+```
+
+## Sampling
+The above training script saves checkpoints to .pt files in the logging directory. These checkpoints will have names like model40000.pt, which stores both models and EMAs.  The default setting is to sample from the EMA, since those produce much better samples.
