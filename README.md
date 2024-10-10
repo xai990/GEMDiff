@@ -53,8 +53,32 @@ To train your model, there are some hyperparameters. We will split up our hyperp
 
 
 ```
-python scripts/train.py --config "<config file path>"
+python scripts/train.py --config "<config file path>" --dir "<log directory path>"
+```
+`--gene_set` is an optional input for gene set list, defualt as "Random".
+
+## Sampling 
+The above training script saves checkpoints to .pt files in the logging directory. These checkpoints will have names like model40000.pt, which stores the learnable parameters both of models and EMAs. The default setting is to sample from the EMAs, since those produce much better samples. 
+```
+python scripts/sample.py --model_path "<pt file path>"  --dir "<log directory path>" --dir_out "<output directory path>" --vaild 
 ```
 
-## Sampling
-The above training script saves checkpoints to .pt files in the logging directory. These checkpoints will have names like model40000.pt, which stores both models and EMAs.  The default setting is to sample from the EMA, since those produce much better samples.
+## Perturbing
+The perturbing process can be trained from scratch or load from checkpoints. 
+```
+python scripts/pertub.py --config "<config file path>" --dir "<log directory path>" 
+```
+`--gene_set` is an optional input for gene set list, defualt as "Random".
+`--model_dir` is an optional input for model checkpoints directory, defualt as None.
+`--vaild` is to vaild model with test dataset. 
+
+## Plotting
+The plotting script visulizes data by UMAP plot and assign the silhouette score as the cluster quaility. 
+```
+python scripts/gene.py --config "<config file path>" --dir "<log directory path>"  
+```
+`--gene_set` is an optional input for gene set list, defualt as "Random".
+`--balance` is to set the sample number of each label data shown on the figure. 
+`--random` is to assign different seeds each time running the script. 
+`--vaild` is to plot the test dataset. 
+
