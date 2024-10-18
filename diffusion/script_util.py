@@ -8,7 +8,7 @@ from .mlp import GPT , Classifier
 from . import logger 
 import umap.plot
 import numpy as np 
-import plotly.graph_objects as go
+# import plotly.graph_objects as go
 import random
 from sklearn.metrics import silhouette_score 
 from .datasets import sample_screen, balance_sample
