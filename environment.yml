@@ -1,0 +1,18 @@
+# You can use this file to create a conda environment for this pipeline:
+#   conda env create -f environment.yml
+name: GEMDiff
+channels:
+  - defaults
+dependencies:
+  - matplotlib
+  - numpy
+  - pandas
+  - pip
+  - pip:
+    - importlib-metadata==6.0.0
+  - python >= 3.10
+  - seaborn
+  - mpi4py
+  - scikit-learn
+  - tqdm 
+  - brotli
