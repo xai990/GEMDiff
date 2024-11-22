@@ -47,10 +47,19 @@ def load_data(
         raise ValueError("unspecified data directory")
     
     all_files = _list_files_recursively(data_dir)
+    train_data = [file for file in all_files if "train" in file and "label" not in file]
+    train_label = [file for file in all_files if "train" in file and "label" in file]
+    test_data = [file for file in all_files if "test" in file and "label" not in file]
+    test_label = [file for file in all_files if "test" in file and "label" in file]
     # set the condition later
-    # logger.debug(f"The information of {all_files} -- datasets")
-    train_dataset = CustomGeneDataset(all_files[1],
-                                all_files[3],
+    logger.info(f"The information of {all_files} -- datasets")
+    logger.info(f"The information of {train_data} -- datasets")
+    logger.info(f"The information of {train_label} -- datasets")
+    logger.info(f"The information of {test_data} -- datasets")
+    logger.info(f"The information of {test_label} -- datasets")
+
+    train_dataset = CustomGeneDataset(train_data[0],
+                                train_label[0],
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
@@ -60,8 +69,8 @@ def load_data(
                                 dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
-    test_dataset = CustomGeneDataset(all_files[0],
-                                all_files[2],
+    test_dataset = CustomGeneDataset(test_data[0],
+                                test_label[0],
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
