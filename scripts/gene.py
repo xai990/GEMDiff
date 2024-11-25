@@ -32,12 +32,20 @@ def main(args):
     logger.info(config)
 
     # load data 
-    train, test = load_data(data_dir = config.data.data_dir,
-                gene_selection = config.model.feature_size,
-                class_cond=config.data.cond,
-                gene_set = args.gene_set,
-                random=args.random,
+    train_data, test_data = load_data(train_path = config.data.train_path,
+                    train_label_path = config.data.train_label_path,
+                    test_path = config.data.test_path,
+                    test_label_path = config.data.test_label_path,
+                    gene_selection = config.model.feature_size,
+                    class_cond=config.model.class_cond,
+                    gene_set = args.gene_set,
     )
+    # train, test = load_data(data_dir = config.data.data_dir,
+    #             gene_selection = config.model.feature_size,
+    #             class_cond=config.data.cond,
+    #             gene_set = args.gene_set,
+    #             random=args.random,
+    # )
     data = test if args.vaild else train 
     score = get_silhouettescore(data,n_neighbors = config.umap.n_neighbors,min_dist = config.umap.min_dist,balance =args.balance)
     experiment = args.gene_set if args.gene_set else "Random"

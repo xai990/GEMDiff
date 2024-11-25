@@ -11,7 +11,11 @@ import blobfile as bf
 
 
 def load_data(
-    *,data_dir=None, 
+    *,
+    train_path="data_train",
+    train_label_path="label_train",
+    test_path="data_test",
+    test_label_path="label_test",
     class_cond=False,
     data_filter="replace",
     gene_selection=None,
@@ -43,23 +47,23 @@ def load_data(
     #     dataset = SklearnDataset(dataset)
     #     return dataset 
     
-    if not data_dir:
-        raise ValueError("unspecified data directory")
+    # if not data_dir:
+    #     raise ValueError("unspecified data directory")
     
-    all_files = _list_files_recursively(data_dir)
-    train_data = [file for file in all_files if "train" in file and "label" not in file]
-    train_label = [file for file in all_files if "train" in file and "label" in file]
-    test_data = [file for file in all_files if "test" in file and "label" not in file]
-    test_label = [file for file in all_files if "test" in file and "label" in file]
+    # all_files = _list_files_recursively(data_dir)
+    # train_data = [file for file in all_files if "train" in file and "label" not in file]
+    # train_label = [file for file in all_files if "train" in file and "label" in file]
+    # test_data = [file for file in all_files if "test" in file and "label" not in file]
+    # test_label = [file for file in all_files if "test" in file and "label" in file]
     # set the condition later
-    logger.info(f"The information of {all_files} -- datasets")
-    logger.info(f"The information of {train_data} -- datasets")
-    logger.info(f"The information of {train_label} -- datasets")
-    logger.info(f"The information of {test_data} -- datasets")
-    logger.info(f"The information of {test_label} -- datasets")
+    # logger.info(f"The information of {all_files} -- datasets")
+    # logger.info(f"The information of {train_data} -- datasets")
+    # logger.info(f"The information of {train_label} -- datasets")
+    # logger.info(f"The information of {test_data} -- datasets")
+    # logger.info(f"The information of {test_label} -- datasets")
 
-    train_dataset = CustomGeneDataset(train_data[0],
-                                train_label[0],
+    train_dataset = CustomGeneDataset(train_path,
+                                train_label_path,
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
@@ -69,17 +73,18 @@ def load_data(
                                 dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
-    test_dataset = CustomGeneDataset(test_data[0],
-                                test_label[0],
-                                gene_set = gene_set,
-                                transform= GeneDataTransform(),
-                                target_transform=GeneLabelTransform(),
-                                scaler=True,
-                                filter=data_filter,
-                                random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
-                                dge = (Genedifferential() if dge else None), 
-                                class_cond =class_cond,
-    )
+    if not train:
+        test_dataset = CustomGeneDataset(test_path,
+                                    test_label_path,
+                                    gene_set = gene_set,
+                                    transform= GeneDataTransform(),
+                                    target_transform=GeneLabelTransform(),
+                                    scaler=True,
+                                    filter=data_filter,
+                                    random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
+                                    dge = (Genedifferential() if dge else None), 
+                                    class_cond =class_cond,
+        )
     
     
    

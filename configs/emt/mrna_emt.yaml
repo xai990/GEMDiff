@@ -1,5 +1,9 @@
 data:
-  data_dir: "datasets/"
+  # data_dir: "datasets/"
+  train_path: "datasets/BLAD_BLCA_train.txt"
+  train_label_path: "datasets/BLAD_BLCA_train.label.txt"
+  test_path: "datasets/BLAD_BLCA_test.txt"
+  test_label_path: "datasets/BLAD_BLCA_test.label.txt"
   dir_out: "results"
   
 model:
