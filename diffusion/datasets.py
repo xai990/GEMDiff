@@ -22,6 +22,7 @@ def load_data(
     dge = False,
     gene_set = None,
     random=False,
+    train=False,
 ):
     """ 
     For a dataset, create a generate over (seq, kwars) pairs
@@ -73,23 +74,23 @@ def load_data(
                                 dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
-    if not train:
-        test_dataset = CustomGeneDataset(test_path,
-                                    test_label_path,
-                                    gene_set = gene_set,
-                                    transform= GeneDataTransform(),
-                                    target_transform=GeneLabelTransform(),
-                                    scaler=True,
-                                    filter=data_filter,
-                                    random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
-                                    dge = (Genedifferential() if dge else None), 
-                                    class_cond =class_cond,
-        )
-    
-    
-   
-    # logger.log(f"After data pre-processing, the dataset contains {dataset[0]}")
     logger.log(f"After data pre-processing, the dataset contains {train_dataset[:][0].shape[-1]} gene.")
+    if train:
+        return train_dataset
+     
+    test_dataset = CustomGeneDataset(test_path,
+                                test_label_path,
+                                gene_set = gene_set,
+                                transform= GeneDataTransform(),
+                                target_transform=GeneLabelTransform(),
+                                scaler=True,
+                                filter=data_filter,
+                                random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
+                                dge = (Genedifferential() if dge else None), 
+                                class_cond =class_cond,
+    )
+    
+    # logger.log(f"After data pre-processing, the dataset contains {dataset[0]}")
     #logger.log("The gene selection is fixed random. Have not set a bool value for examine whether fixed random or true random")
     
     return train_dataset, test_dataset
