@@ -36,13 +36,17 @@ def main(args):
     # load data 
     logger.info(f"The args gene set is: {args.gene_set}")
 
-    train_data, test_data = load_data(data_dir = config.data.data_dir,
+    train_data = load_data(train_path = config.data.train_path,
+                    train_label_path = config.data.train_label_path,
+                    # test_path = config.data.test_path,
+                    # test_label_path = config.data.test_label_path,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
+                    train=True,
     )
     logger.info(f"The size of train dataset: {train_data[:][0].shape}")
-    logger.info(f"The size of test dataset: {test_data[:][0].shape}")
+    # logger.info(f"The size of test dataset: {test_data[:][0].shape}")
 
     
     # logger.debug(f"The size of dataset is :{dataset}")

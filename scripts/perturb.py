@@ -37,11 +37,19 @@ def main(args):
     input_conf = OmegaConf.load(args.config)
     config = OmegaConf.merge(basic_conf, input_conf)
     # load data 
-    train_data, test_data = load_data(data_dir = config.data.data_dir,
+    train_data, test_data = load_data(train_path = config.data.train_path,
+                    train_label_path = config.data.train_label_path,
+                    test_path = config.data.test_path,
+                    test_label_path = config.data.test_label_path,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
     )
+    # train_data, test_data = load_data(data_dir = config.data.data_dir,
+    #                 gene_selection = config.model.feature_size,
+    #                 class_cond=config.model.class_cond,
+    #                 gene_set = args.gene_set,
+    # )
     # separate the tumor and normal data
     train_N, train_T = sample_screen(train_data)
     test_N, test_T = sample_screen(test_data)
