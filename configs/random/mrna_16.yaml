@@ -1,5 +1,9 @@
 data:
-  data_dir: "datasets/"
+  # data_dir: "datasets/"
+  train_path: "datasets_breast/breast_train_GEM_transpose.txt"
+  train_label_path: "datasets_breast/train_labels.txt"
+  test_path: "datasets_breast/breast_test_GEM_transpose.txt"
+  test_label_path: "datasets_breast/test_labels.txt"
   dir_out: "results"
   corerate: 1
   
