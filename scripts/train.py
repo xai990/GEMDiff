@@ -44,6 +44,7 @@ def main(args):
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
                     train=True,
+                    data_filter=config.data.filter,
     )
     logger.info(f"The size of train dataset: {train_data[:][0].shape}")
     # logger.info(f"The size of test dataset: {test_data[:][0].shape}")
