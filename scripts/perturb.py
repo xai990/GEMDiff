@@ -199,11 +199,11 @@ def main(args):
     logger.log("pertubing the source to target")
     source_label = {}
     if config.model.class_cond:
-        source_label['y'] = th.ones(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
+        source_label['y'] = th.ones(test_T.shape[0] if args.valid else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
     noise_T = diffusion.ddim_reverse_sample_loop(
         ema,
-        test_T.shape if args.vaild else train_T.shape,
-        th.Tensor(test_T).float().to(dist_util.dev()) if args.vaild else th.Tensor(train_T).float().to(dist_util.dev()),
+        test_T.shape if args.valid else train_T.shape,
+        th.Tensor(test_T).float().to(dist_util.dev()) if args.valid else th.Tensor(train_T).float().to(dist_util.dev()),
         clip_denoised=False,
         model_kwargs=source_label,
         # device=dist_util.dev(),
@@ -211,7 +211,7 @@ def main(args):
     # logger.debug(f"The len of noise_T is:{len(noise_T)}")
     target_label = {}
     if config.model.class_cond:
-        target_label['y'] = th.zeros(test_T.shape[0] if args.vaild else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
+        target_label['y'] = th.zeros(test_T.shape[0] if args.valid else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
     target = diffusion.ddim_sample_loop(ema,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
@@ -220,13 +220,13 @@ def main(args):
     logger.log(f"saving perturb data array to {out_path}")
     logger.log("visulize the perturbed data and real data")
     
-    plotdata = [test_N, test_T, target] if args.vaild else [train_N, train_T, target]
+    plotdata = [test_N, test_T, target] if args.valid else [train_N, train_T, target]
     showdata(plotdata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
     
     logger.log("filter the perturbed gene -- 1 std")
-    gene_index = filter_gene(test_T if args.vaild else train_T, target, config.data.corerate)
+    gene_index = filter_gene(test_T if args.valid else train_T, target, config.data.corerate)
     # logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- 1 standard deviation of the perturbation among all {train_N.shape[1]} gene")
-    if args.vaild:
+    if args.valid:
         logger.log(f"The indentified genes are: {test_data.find_gene(gene_index)} -- {config.data.corerate} standard deviation of the perturbation among all {test_N.shape[1]} gene")
     else:
         logger.log(f"The indentified genes are: {train_data.find_gene(gene_index)} -- {config.data.corerate} standard deviation of the perturbation among all {train_N.shape[1]} gene")
@@ -293,10 +293,10 @@ def requires_grad(model, flag=True):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--config", type=str, default="configs/mrna_16.yaml")
+    parser.add_argument("--config", type=str, default="configs/random/mrna_16.yaml")
     parser.add_argument("--dir", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default="Random")
     parser.add_argument("--model_dir", type=str, default=None)
-    parser.add_argument("--vaild", action='store_true')
+    parser.add_argument("--valid", action='store_true')
     args = parser.parse_args()
     main(args)
