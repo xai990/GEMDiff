@@ -5,6 +5,8 @@ data:
   test_path: "datasets_breast/breast_test_GEM_transpose.txt"
   test_label_path: "datasets_breast/test_labels.txt"
   dir_out: "results"
+  filter: "replace"
+  corerate: 1
   
 model:
   class_cond: True
@@ -12,6 +14,7 @@ model:
   n_layer: 4
   n_head: 2
   feature_size: 8
+  
   
 diffusion:
   noise_schedule: cosine
