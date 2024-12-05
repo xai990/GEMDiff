@@ -44,6 +44,7 @@ def main(args):
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
+                    data_filter=config.data.filter,
     )
     # train_data, test_data = load_data(data_dir = config.data.data_dir,
     #                 gene_selection = config.model.feature_size,
@@ -191,7 +192,7 @@ def main(args):
         
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     ema= deepcopy(model)
-    state_dict = th.load(f"{args.model_dir}/model40000.pt")
+    state_dict = th.load(f"{args.model_path}")
     ema.load_state_dict(state_dict["ema"])
     ema.to(dist_util.dev())
     ema.eval()
@@ -296,7 +297,7 @@ if __name__ == "__main__":
     parser.add_argument("--config", type=str, default="configs/random/mrna_16.yaml")
     parser.add_argument("--dir", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default="Random")
-    parser.add_argument("--model_dir", type=str, default=None)
+    parser.add_argument("--model_path", type=str, default=None)
     parser.add_argument("--valid", action='store_true')
     args = parser.parse_args()
     main(args)
