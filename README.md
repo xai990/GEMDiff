@@ -54,7 +54,7 @@ To train your model, there are some hyperparameters. We will split up our hyperp
 ```
 python scripts/train.py --config "<config file path>" --dir "<log directory path>"
 ```
-`--gene_set` is an optional input for gene set list, defualt as "Random". The model checkpoints will be stored under the log directory path as the file type .pt 
+`--gene_set` is an optional input for gene set list, defualt as "Random". The above training script saves checkpoints to .pt files in the logging directory. These checkpoints will have names like model40000.pt, which stores the learnable parameters both of models and EMAs.
 
 ## Perturbing
 The perturbing process need to load from checkpoints. 
@@ -64,15 +64,14 @@ python scripts/pertub.py --config "<config file path>" --dir "<log directory pat
 `--gene_set` is an optional input for gene set list, defualt as "Random".
 `--valid` is to valid model with test dataset. 
 
-## Sampling 
-The above training script saves checkpoints to .pt files in the logging directory. These checkpoints will have names like model40000.pt, which stores the learnable parameters both of models and EMAs. The default setting is to sample from the EMAs, since those produce much better samples. 
+## Gene Augmentation 
+The default setting is to sample from the EMAs (Exponential Moving Averages), since those produce much better samples. 
 ```
 python scripts/sample.py --model_path "<pt file path>"  --dir "<log directory path>" --dir_out "<output directory path>" --vaild 
 ```
 
 
-
-## Plotting
+## Plotting and qualifying cluster 
 The plotting script visulizes data by UMAP plot and assign the silhouette score as the cluster quaility. 
 ```
 python scripts/gene.py --config "<config file path>" --dir "<log directory path>"  
