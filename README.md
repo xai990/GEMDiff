@@ -50,16 +50,15 @@ GeneSet1	Gene1	Gene2	Gene3
 ## Training 
 To train your model, there are some hyperparameters. We will split up our hyperparameters into three groups: model architecture, diffusion process, and training flags. We include some reasonable defaults for baseline [config files](configs) (You could also setup the paprameter by creating your own config file). Once you have setup your hyper-parameters, you can run an experiment like so:
 
-
 ```
 python scripts/train.py --config "<config file path>" --dir "<log directory path>"
 ```
 `--gene_set` is an optional input for gene set list, defualt as "Random". The above training script saves checkpoints to .pt files in the logging directory. These checkpoints will have names like model40000.pt, which stores the learnable parameters both of models and EMAs.
 
 ## Perturbing
-The perturbing process need to load from checkpoints. 
+The perturbing process need to load from checkpoints. The default setting is to sample from the EMAs (Exponential Moving Averages), since those produce much better transformation. 
 ```
-python scripts/pertub.py --config "<config file path>" --dir "<log directory path> --model_dir "<model directoyr path>" 
+python scripts/pertub.py --config "<config file path>" --dir "<log directory path> --model_path "<model path> --valid" 
 ```
 `--gene_set` is an optional input for gene set list, defualt as "Random".
 `--valid` is to valid model with test dataset. 
@@ -67,7 +66,7 @@ python scripts/pertub.py --config "<config file path>" --dir "<log directory pat
 ## Gene Augmentation 
 The default setting is to sample from the EMAs (Exponential Moving Averages), since those produce much better samples. 
 ```
-python scripts/sample.py --model_path "<pt file path>"  --dir "<log directory path>" --dir_out "<output directory path>" --vaild 
+python scripts/sample.py --model_path "<pt file path>"  --dir "<log directory path>" --dir_out "<output directory path>" 
 ```
 
 
