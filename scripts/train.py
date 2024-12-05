@@ -128,11 +128,11 @@ def create_config():
         "train":{
             "microbatch": 16,
             "log_interval": 500,
-            "save_interval": 1,
+            "save_interval": 40000,
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":2,
+            "num_epoch":40001,
             "schedule_sampler":"uniform",
         },
     }
