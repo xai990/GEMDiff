@@ -64,137 +64,137 @@ def main(args):
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
 
-    if args.model_dir is None:
-        model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
-        model_N.to(dist_util.dev())
-        logger.info(model_N)
-        ema_N = deepcopy(model_N).to(dist_util.dev())  # Create an EMA of the model for use after training
-        requires_grad(ema_N, False)
-        logger.log("train the target model:")  
+    # if args.model_dir is None:
+    #     model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+    #     model_N.to(dist_util.dev())
+    #     logger.info(model_N)
+    #     ema_N = deepcopy(model_N).to(dist_util.dev())  # Create an EMA of the model for use after training
+    #     requires_grad(ema_N, False)
+    #     logger.log("train the target model:")  
         
-        schedule_sampler = create_named_schedule_sampler(config.train.schedule_sampler, diffusion)
-        if config.model.class_cond:
-            trainN = LabelGeneDataset(train_N,0)
-        else:
-            trainN = train_N
-        loader_N = data_loader(trainN,
-                        batch_size=config.train.batch_size,            
-        ) 
-        optimizer_N = th.optim.Adam(model_N.parameters(),lr=config.train.lr)
-        update_ema(ema_N, model_N, decay=0)  # Ensure EMA is initialized with synced weights
-        model_N.train()  # important! This enables embedding dropout for classifier-free guidance
-        ema_N.eval()  # EMA model should always be in eval mode
-        for epoch in range(config.train.num_epoch):
-            for idx,batch_x in enumerate(loader_N):
-                batch, cond = batch_x
-                target_y = {}
-                if config.model.class_cond:
-                    target_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
-                # logger.debug(f"target_t is : {target_y}")
-                batch_size = batch.shape[0]
-                t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
-                losses = diffusion.loss(model_N,
-                                        batch.to(dist_util.dev()),
-                                        t.to(dist_util.dev()),
-                                        model_kwargs=target_y)
-                loss = (losses["loss"]).mean()
-                optimizer_N.zero_grad()
-                loss.backward()
-                th.nn.utils.clip_grad_norm_(model_N.parameters(),1.)
-                optimizer_N.step()
-                update_ema(ema_N, model_N)
+    #     schedule_sampler = create_named_schedule_sampler(config.train.schedule_sampler, diffusion)
+    #     if config.model.class_cond:
+    #         trainN = LabelGeneDataset(train_N,0)
+    #     else:
+    #         trainN = train_N
+    #     loader_N = data_loader(trainN,
+    #                     batch_size=config.train.batch_size,            
+    #     ) 
+    #     optimizer_N = th.optim.Adam(model_N.parameters(),lr=config.train.lr)
+    #     update_ema(ema_N, model_N, decay=0)  # Ensure EMA is initialized with synced weights
+    #     model_N.train()  # important! This enables embedding dropout for classifier-free guidance
+    #     ema_N.eval()  # EMA model should always be in eval mode
+    #     for epoch in range(config.train.num_epoch):
+    #         for idx,batch_x in enumerate(loader_N):
+    #             batch, cond = batch_x
+    #             target_y = {}
+    #             if config.model.class_cond:
+    #                 target_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
+    #             # logger.debug(f"target_t is : {target_y}")
+    #             batch_size = batch.shape[0]
+    #             t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
+    #             losses = diffusion.loss(model_N,
+    #                                     batch.to(dist_util.dev()),
+    #                                     t.to(dist_util.dev()),
+    #                                     model_kwargs=target_y)
+    #             loss = (losses["loss"]).mean()
+    #             optimizer_N.zero_grad()
+    #             loss.backward()
+    #             th.nn.utils.clip_grad_norm_(model_N.parameters(),1.)
+    #             optimizer_N.step()
+    #             update_ema(ema_N, model_N)
 
 
-            if (epoch % config.train.log_interval == 0):
-                logger.log(f"The loss is : {loss} at {epoch} epoch")
-            # save model checkpoint     
-            if(epoch%config.train.save_interval==0) and epoch > 0:
-                if dist.get_rank() == 0:
-                    checkpoint = {
-                        "model": model_N.state_dict(),
-                        "ema": ema_N.state_dict(),
-                        "opt": optimizer_N.state_dict(),
-                        "conf": config
-                    }
-                    filename = f"model_N{(epoch):05d}.pt"
-                    checkpoint_path = os.path.join(get_blob_logdir(), filename)
-                    th.save(checkpoint, checkpoint_path)
-                    logger.log(f"Saved checkpoint to {checkpoint_path}")
+    #         if (epoch % config.train.log_interval == 0):
+    #             logger.log(f"The loss is : {loss} at {epoch} epoch")
+    #         # save model checkpoint     
+    #         if(epoch%config.train.save_interval==0) and epoch > 0:
+    #             if dist.get_rank() == 0:
+    #                 checkpoint = {
+    #                     "model": model_N.state_dict(),
+    #                     "ema": ema_N.state_dict(),
+    #                     "opt": optimizer_N.state_dict(),
+    #                     "conf": config
+    #                 }
+    #                 filename = f"model_N{(epoch):05d}.pt"
+    #                 checkpoint_path = os.path.join(get_blob_logdir(), filename)
+    #                 th.save(checkpoint, checkpoint_path)
+    #                 logger.log(f"Saved checkpoint to {checkpoint_path}")
         
-        logger.log("train the source model:")  
-        model_T, _ = create_model_and_diffusion(**model_config, **diffusion_config)
-        model_T.to(dist_util.dev())
-        logger.info(model_T)
-        ema_T = deepcopy(model_T).to(dist_util.dev())  # Create an EMA of the model for use after training
-        requires_grad(ema_T, False)
-        if config.model.class_cond:
-            trainT = LabelGeneDataset(train_T,1)
-        else:
-            trainT = train_T
-        loader_T = data_loader(trainT,
-                        batch_size=config.train.batch_size,            
-        )
-        optimizer_T = th.optim.Adam(model_T.parameters(),lr=config.train.lr)
-        update_ema(ema_T, model_T, decay=0)  # Ensure EMA is initialized with synced weights
-        model_T.train()  # important! This enables embedding dropout for classifier-free guidance
-        ema_T.eval()  # EMA model should always be in eval mode
-        for epoch in range(config.train.num_epoch):
-            for idx,batch_x in enumerate(loader_T):
-                batch, cond = batch_x # not consider the label info for now 
-                source_y = {}
-                if config.model.class_cond:
-                    source_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
-                batch_size = batch.shape[0]
-                t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
-                losses = diffusion.loss(model_T,
-                                        batch.to(dist_util.dev()),
-                                        t.to(dist_util.dev()),
-                                        model_kwargs=source_y)
-                loss = (losses["loss"]).mean()
-                optimizer_N.zero_grad()
-                loss.backward()
-                th.nn.utils.clip_grad_norm_(model_T.parameters(),1.)
-                optimizer_T.step()
-                update_ema(ema_T, model_T)
+    #     logger.log("train the source model:")  
+    #     model_T, _ = create_model_and_diffusion(**model_config, **diffusion_config)
+    #     model_T.to(dist_util.dev())
+    #     logger.info(model_T)
+    #     ema_T = deepcopy(model_T).to(dist_util.dev())  # Create an EMA of the model for use after training
+    #     requires_grad(ema_T, False)
+    #     if config.model.class_cond:
+    #         trainT = LabelGeneDataset(train_T,1)
+    #     else:
+    #         trainT = train_T
+    #     loader_T = data_loader(trainT,
+    #                     batch_size=config.train.batch_size,            
+    #     )
+    #     optimizer_T = th.optim.Adam(model_T.parameters(),lr=config.train.lr)
+    #     update_ema(ema_T, model_T, decay=0)  # Ensure EMA is initialized with synced weights
+    #     model_T.train()  # important! This enables embedding dropout for classifier-free guidance
+    #     ema_T.eval()  # EMA model should always be in eval mode
+    #     for epoch in range(config.train.num_epoch):
+    #         for idx,batch_x in enumerate(loader_T):
+    #             batch, cond = batch_x # not consider the label info for now 
+    #             source_y = {}
+    #             if config.model.class_cond:
+    #                 source_y = {k: v.to(dist_util.dev()) for k, v in cond.items()}
+    #             batch_size = batch.shape[0]
+    #             t, _ = schedule_sampler.sample(batch.shape[0], dist_util.dev())
+    #             losses = diffusion.loss(model_T,
+    #                                     batch.to(dist_util.dev()),
+    #                                     t.to(dist_util.dev()),
+    #                                     model_kwargs=source_y)
+    #             loss = (losses["loss"]).mean()
+    #             optimizer_N.zero_grad()
+    #             loss.backward()
+    #             th.nn.utils.clip_grad_norm_(model_T.parameters(),1.)
+    #             optimizer_T.step()
+    #             update_ema(ema_T, model_T)
 
 
-            if (epoch % config.train.log_interval == 0):
-                logger.log(f"The loss is : {loss} at {epoch} epoch")
-            # save model checkpoint     
-            if(epoch%config.train.save_interval==0) and epoch > 0:
-                if dist.get_rank() == 0:
-                    checkpoint = {
-                        "model": model_T.state_dict(),
-                        "ema": ema_T.state_dict(),
-                        "opt": optimizer_T.state_dict(),
-                        "conf": config
-                    }
-                    filename = f"model_T{(epoch):05d}.pt"
-                    checkpoint_path = os.path.join(get_blob_logdir(), filename)
-                    th.save(checkpoint, checkpoint_path)
-                    logger.log(f"Saved checkpoint to {checkpoint_path}")
-    else:
+    #         if (epoch % config.train.log_interval == 0):
+    #             logger.log(f"The loss is : {loss} at {epoch} epoch")
+    #         # save model checkpoint     
+    #         if(epoch%config.train.save_interval==0) and epoch > 0:
+    #             if dist.get_rank() == 0:
+    #                 checkpoint = {
+    #                     "model": model_T.state_dict(),
+    #                     "ema": ema_T.state_dict(),
+    #                     "opt": optimizer_T.state_dict(),
+    #                     "conf": config
+    #                 }
+    #                 filename = f"model_T{(epoch):05d}.pt"
+    #                 checkpoint_path = os.path.join(get_blob_logdir(), filename)
+    #                 th.save(checkpoint, checkpoint_path)
+    #                 logger.log(f"Saved checkpoint to {checkpoint_path}")
+    # else:
         # load the model from pretrain
-        """
-        model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
-        ema_N = deepcopy(model_N)
-        model_T, _ = create_model_and_diffusion(**model_config, **diffusion_config)
-        ema_T = deepcopy(model_T)
-        state_dict = th.load(f"{args.model_dir}/model_N40000.pt")
-        ema_N.load_state_dict(state_dict["ema"])
-        ema_N.to(dist_util.dev())
-        ema_N.eval()
-        state_dict = th.load(f"{args.model_dir}/model_T40000.pt")
-        ema_T.load_state_dict(state_dict["ema"])
-        ema_T.to(dist_util.dev())
-        ema_T.eval()
-        """
-        model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
-        ema= deepcopy(model)
-        state_dict = th.load(f"{args.model_dir}/model40000.pt")
-        ema.load_state_dict(state_dict["ema"])
-        ema.to(dist_util.dev())
-        ema.eval()
+        
+        # model_N, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+        # ema_N = deepcopy(model_N)
+        # model_T, _ = create_model_and_diffusion(**model_config, **diffusion_config)
+        # ema_T = deepcopy(model_T)
+        # state_dict = th.load(f"{args.model_dir}/model_N40000.pt")
+        # ema_N.load_state_dict(state_dict["ema"])
+        # ema_N.to(dist_util.dev())
+        # ema_N.eval()
+        # state_dict = th.load(f"{args.model_dir}/model_T40000.pt")
+        # ema_T.load_state_dict(state_dict["ema"])
+        # ema_T.to(dist_util.dev())
+        # ema_T.eval()
+        
+    model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+    ema= deepcopy(model)
+    state_dict = th.load(f"{args.model_dir}/model40000.pt")
+    ema.load_state_dict(state_dict["ema"])
+    ema.to(dist_util.dev())
+    ema.eval()
 
     logger.log("pertubing the source to target")
     source_label = {}
