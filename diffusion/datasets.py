@@ -19,7 +19,6 @@ def load_data(
     class_cond=False,
     data_filter="replace",
     gene_selection=None,
-    dge = False,
     gene_set = None,
     random=False,
     train=False,
@@ -71,7 +70,6 @@ def load_data(
                                 scaler=True,
                                 filter=data_filter,
                                 random_selection=(GeneRandom(random=random ,features=gene_selection) if gene_selection else None),
-                                dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
     logger.log(f"After data pre-processing, the dataset contains {train_dataset[:][0].shape[-1]} gene.")
@@ -86,7 +84,6 @@ def load_data(
                                 scaler=True,
                                 filter=data_filter,
                                 random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
-                                dge = (Genedifferential() if dge else None), 
                                 class_cond =class_cond,
     )
     
@@ -111,18 +108,6 @@ def data_loader(dataset, batch_size=32,deterministic=False):
 
 
 
-def _list_files_recursively(data_dir):
-    results = []
-    for entry in sorted(bf.listdir(data_dir), key=lambda x: (x[0].isupper(), x)):
-        full_path = bf.join(data_dir, entry)
-        ext = entry.split(".")[-1]
-        if "." in entry and ext.lower() in ["txt"]:
-            results.append(full_path)
-        elif "." in entry and ext.lower() in ["gmt"]:
-            results.append(full_path)
-        elif bf.isdir(full_path):
-            results.extend(_list_files_recursively(full_path))
-    return results
 
 
 
@@ -137,9 +122,21 @@ class CustomGeneDataset(Dataset):
         scaler = None, 
         target_transform=None, 
         random_selection = None,
-        dge = None,
         class_cond = False,
     ):
+        """
+        A custom PyTorch Dataset for gene expression data.
+
+        :param genepath: Path to the gene expression data file.
+        :param labelpath: Path to the label data file.
+        :param gene_set: Gene set to use for filtering. Can be "Random" or a file path that includes the gene set for experiments.
+        :param transform: data preprocessing transform function to apply to gene features.
+        :param filter: Filter to apply to gene features if there are any NA value. Replace for replacing the NA value with -inf; drop for dropping the NA value.
+        :param scaler: if True, apply min-max Scaler to gene features.
+        :param target_transform: data preprocessing transform function to apply to labels.
+        :param random_selection: Function for randomly selecting genes.
+        :param class_cond: If True, include class labels in the returned dictionaries.
+        """
         assert os.path.exists(genepath), "gene path: {} does not exist.".format(genepath)
         logger.log(f"reading input data from {os.path.basename(genepath)}") 
         # read the gene expression 
@@ -179,8 +176,6 @@ class CustomGeneDataset(Dataset):
         if random_selection:
             gene,columns = random_selection(gene,df.columns)
             
-        if dge:
-            gene = dge(gene)
 
         self.columns = columns
         self.gene = gene
@@ -264,7 +259,7 @@ class GeneDataTransform():
 
 class GeneLabelTransform():
     """
-    For a dataset, data pre-process.
+    For a dataset, data label pre-process.
 
     :param label: label array.
     
@@ -276,6 +271,14 @@ class GeneLabelTransform():
 
 
 class GeneRandom():
+    """
+    Function to randomly select gene feature with provided gene set.
+
+    :param random: if True, randome seed for each run (non-replicable).
+    :param features: the number of gene features for the random selection.
+    :param sample: gene expression array.
+    :param columns: provided gene set array.
+    """   
     def __init__(self, random=True,features = 100):
         self.random = random
         self.features = features 
@@ -291,35 +294,6 @@ class GeneRandom():
             return np.array(sample[:,idx], dtype=np.float32), columns[idx]
         return np.array(sample[:,:], dtype=np.float32), columns
         
-
-
-
-# class SklearnDataset(Dataset): 
-#     def __init__(self,dataset,label=None,classes=None):
-#         logger.info("reading input data from sklearn datasets") 
-    
-#         self.data = dataset[:,np.newaxis,:]
-#         self.label = label
-#         self.classes = classes
-#     def __len__(self):
-#         return len(self.data)
-    
-#     def __getitem__(self,idx):
-        
-#         out_dict = {}
-#         if self.classes is not None:
-#             out_dict["y"] = np.array(label[idx], dtype=np.int64)
-#         return np.array(self.data[idx], dtype=np.float32), out_dict
-
-
-class Genedifferential():
-    def __init__(self, idx = [9583,3605]):
-        self.idx = idx
-  
-    def __call__(self, sample):
-        return sample[:,self.idx]
-        # return sample[:,:,self.idx]
-
     
 
 def datascalar(dataset):
@@ -391,3 +365,17 @@ class LabelGeneDataset(Dataset):
         out_dict = {}
         out_dict["y"] = np.array(self.label[idx], dtype=np.int64)
         return np.array(self.dataset[idx], dtype=np.float32), out_dict
+
+
+def _list_files_recursively(data_dir):
+    results = []
+    for entry in sorted(bf.listdir(data_dir), key=lambda x: (x[0].isupper(), x)):
+        full_path = bf.join(data_dir, entry)
+        ext = entry.split(".")[-1]
+        if "." in entry and ext.lower() in ["txt"]:
+            results.append(full_path)
+        elif "." in entry and ext.lower() in ["gmt"]:
+            results.append(full_path)
+        elif bf.isdir(full_path):
+            results.extend(_list_files_recursively(full_path))
+    return results
