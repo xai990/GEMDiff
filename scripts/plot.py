@@ -48,6 +48,7 @@ def main(args):
     # load the fake data 
     file_path = args.sample_path
     data_fake = np.load(file_path)
+
     logger.log("Plot the synthesis data with UMAP")
     out_path = os.path.join(args.dir_out,datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
     showdata(test_data,dir = out_path, schedule_plot = "reverse", synthesis_data=data_fake,n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
