@@ -5,8 +5,13 @@ import torch as th
 from omegaconf import OmegaConf
 from diffusion import dist_util, logger
 from diffusion.script_util import showdata, find_model, create_model_and_diffusion
-from diffusion.datasets import load_data
+from diffusion.datasets import load_data, data_loader
 import datetime 
+from torch.utils.data import DataLoader,TensorDataset
+from diffusion.mlp import create
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+
 
 def main(args):
     logger.configure(dir=args.dir)
@@ -27,6 +32,9 @@ def main(args):
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
     )
+    loader = data_loader(train_data,
+                    batch_size=config.train.batch_size,            
+    ) 
     # train_data, test_data = load_data(data_dir = config.data.data_dir,
     #                 gene_selection = config.model.feature_size,
     #                 class_cond=config.model.class_cond,
@@ -52,7 +60,33 @@ def main(args):
     logger.log("Plot the synthesis data with UMAP")
     out_path = os.path.join(args.dir_out,datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
     showdata(test_data,dir = out_path, schedule_plot = "reverse", synthesis_data=data_fake,n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
-    
+    # Create an SVM classifier
+    svm = SVC(kernel='linear')
+    for X_batch, y_batch in loader:
+        X_batch = X_batch.numpy()
+        y_batch = y_batch['y'].numpy()
+        svm.fit(X_batch, y_batch)
+    # Make predictions on the test set
+    test_loader = data_loader(test_data,
+                    batch_size=config.train.batch_size,            
+    ) 
+    y_pred = []
+    y_true = []
+    for X_batch, y_batch in test_loader:
+        X_batch = X_batch.numpy()
+        y_batch = y_batch['y'].numpy()
+        y_pred.extend(svm.predict(X_batch))
+        y_true.extend(y_batch)
+
+    # Calculate the accuracy of the classifier
+    accuracy = accuracy_score(y_true, y_pred)
+    logger.log(f'The testa dataset Accuracy: {100 *accuracy:.2f}%')
+    generated_data,generated_labels = data_fake['arr_0'],data_fake['arr_1']
+    # generated_data = th.tensor(generated_data, dtype=th.float32)
+    # generated_labels = th.tensor(generated_labels, dtype=th.long)
+    y_pred = svm.predict(generated_data)
+    accuracy = accuracy_score(generated_labels, y_pred)
+    logger.log(f'The synthesis dataset Accuracy: {100 * accuracy :.2f}%')
     logger.log("plot complete...")
 
 
@@ -85,6 +119,8 @@ def create_config():
     # defaults.update(model_and_diffusion_defaults())
    
     return defaults  
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
