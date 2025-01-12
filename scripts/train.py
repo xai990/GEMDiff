@@ -53,8 +53,18 @@ def main(args):
     # logger.debug(f"The size of dataset is :{dataset}")
        
     loader = data_loader(train_data,
-                    batch_size=config.train.batch_size,            
+                    batch_size=config.train.batch_size,
+                    # deterministic=True,
+                    drop_fraction = config.data.drop_fraction,            
     ) 
+    batch_count = 0
+    sample_count = 0
+    for batch in loader:
+        batch_count += 1
+        sample_count += batch[0].shape[0]
+
+    logger.info(f"Total batches: {batch_count}")
+    logger.info(f"Total samples: {sample_count}")
     # if dataset[:][0].shape[-1] != config.model.feature_size:
         # config.model.feature_size =  dataset[:][0].shape[-1]
     #     logger.log(f"*{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
@@ -128,11 +138,11 @@ def create_config():
         "train":{
             "microbatch": 16,
             "log_interval": 500,
-            "save_interval": 40000,
+            "save_interval": 10000,
             "schedule_plot": False,
             "resume_checkpoint": "",
             "ema_rate": 0.9999,
-            "num_epoch":40001,
+            "num_epoch":10001,
             "schedule_sampler":"uniform",
         },
     }
