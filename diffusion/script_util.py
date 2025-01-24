@@ -322,6 +322,8 @@ def showdata(dataset,
         data_r , y_r = dataset[:][0], dataset[:][1]['y']
         data_f, y_f = synthesis_data["arr_0"], synthesis_data["arr_1"]
         # stack the data together for overarching patterns 
+        mmd = maximum_mean_discrepancy (data_r, data_f)
+        logger.info(f"The mmd score is:{mmd}")
         data_merged = np.vstack([data_r,data_f])
         fig,ax = plt.subplots()
         color_map = ['blue','orange','cyan','blueviolet']
@@ -453,6 +455,8 @@ def showdata(dataset,
         """
     elif schedule_plot == "perturb":
         dataset_N, dataset_T, target = dataset 
+        mmd = maximum_mean_discrepancy (dataset_N, target)
+        logger.info(f"The mmd score is:{mmd}")
         x_merged = np.vstack([dataset_N,dataset_T, target])
         x_ump = reducer.fit_transform(x_merged)
         q_n = x_ump[:len(dataset_N)]
@@ -471,6 +475,7 @@ def showdata(dataset,
         plt.ylabel('UMAP 2')
         plt.savefig(f"{dir}/UMAP_plot_perturb_{dataset_N.shape[-1]}.png")
         plt.close()
+
     else:
         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
 
@@ -540,4 +545,49 @@ def get_silhouettescore(
     return score 
 
 
+def maximum_mean_discrepancy(X, Y, kernel_function='rbf', gamma=None):
+    """
+    Calculate the Maximum Mean Discrepancy (MMD) between two sets of samples.
+    
+    Args:
+        X (numpy.ndarray): First set of samples, shape (n_samples_X, n_features).
+        Y (numpy.ndarray): Second set of samples, shape (n_samples_Y, n_features).
+        kernel_function (str): Kernel function to use. Options: 'rbf' (default) or 'linear'.
+        gamma (float): Gamma parameter for the RBF kernel. If None, default to 1 / n_features.
+    
+    Returns:
+        float: Maximum Mean Discrepancy between X and Y.
+    """
+    assert X.shape[1] == Y.shape[1], "X and Y must have the same number of features"
+    
+    n_samples_X = X.shape[0]
+    n_samples_Y = Y.shape[0]
+    
+    if gamma is None:
+        gamma = 1.0 / X.shape[1]
+    
+    if kernel_function == 'rbf':
+        kernel = lambda x, y: np.exp(-gamma * np.sum((x - y) ** 2))
+    elif kernel_function == 'linear':
+        kernel = lambda x, y: np.dot(x, y)
+    else:
+        raise ValueError("Invalid kernel function. Choose 'rbf' or 'linear'.")
+    
+    K_XX = np.zeros((n_samples_X, n_samples_X))
+    K_YY = np.zeros((n_samples_Y, n_samples_Y))
+    K_XY = np.zeros((n_samples_X, n_samples_Y))
+    
+    for i in range(n_samples_X):
+        for j in range(n_samples_X):
+            K_XX[i, j] = kernel(X[i], X[j])
+        for j in range(n_samples_Y):
+            K_XY[i, j] = kernel(X[i], Y[j])
+    
+    for i in range(n_samples_Y):
+        for j in range(n_samples_Y):
+            K_YY[i, j] = kernel(Y[i], Y[j])
+    
+    mmd = np.mean(K_XX) - 2 * np.mean(K_XY) + np.mean(K_YY)
+    
+    return mmd
 

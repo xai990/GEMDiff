@@ -10,7 +10,8 @@ from .nn import timestep_embedding
 from . import logger
 from einops import rearrange, repeat
 from einops.layers.torch import Rearrange
-
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
 """
 2024/03/01
 log:
@@ -388,3 +389,31 @@ class Classifier(nn.Module):
             x = block(x)
         x = self.transformer.ln_f(x)
         return self.linear_head(x)
+
+
+class NeuralNetwork(nn.Module):
+    def __init__(self, n_inputs, n_classes, hidden_layer_sizes=[512, 256, 128], batch_norm=False):
+        super(NeuralNetwork, self).__init__()
+        layers = []
+
+        # Input layer
+        input_size = n_inputs
+        for units in hidden_layer_sizes:
+            layers.append(nn.Linear(input_size, units))
+            if batch_norm:
+                layers.append(nn.BatchNorm1d(units))
+            layers.append(nn.ReLU())
+            input_size = units
+
+        # Output layer
+        layers.append(nn.Linear(input_size, n_classes))
+        layers.append(nn.Softmax(dim=1))
+
+        self.model = nn.Sequential(*layers)
+
+    def forward(self, x):
+        return self.model(x)
+
+def create(n_inputs, n_classes, hidden_layer_sizes=[512, 256, 128], batch_norm=False):
+    model = NeuralNetwork(n_inputs, n_classes, hidden_layer_sizes, batch_norm)
+    return model
