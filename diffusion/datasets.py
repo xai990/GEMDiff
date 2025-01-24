@@ -6,7 +6,7 @@ import pandas as pd
 import os 
 import numpy as np 
 import blobfile as bf
-
+import random
 
 
 
@@ -93,21 +93,58 @@ def load_data(
     return train_dataset, test_dataset
 
 
-def data_loader(dataset, batch_size=32,deterministic=False):
+def data_loader(dataset, batch_size=32,deterministic=False,drop_fraction=0.0):
     
     if deterministic:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=False, num_workers=1, 
+            DropDataWrapper(dataset,drop_fraction), batch_size=batch_size, collate_fn=custom_collate,shuffle=False, num_workers=1,
         )
+        # loader = DataLoader(
+        #     dataset, batch_size=batch_size,shuffle=False, num_workers=1,
+        # )
     else:
         loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=True, num_workers=1, 
+            DropDataWrapper(dataset,drop_fraction), batch_size=batch_size, collate_fn=custom_collate,shuffle=True, num_workers=1,
         )
-    
     return loader
 
 
+class DropDataWrapper(Dataset):
+    def __init__(self, dataset, drop_fraction=0.5, training=True):
+        self.dataset = dataset
+        self.drop_fraction = drop_fraction
+        self.training = training
 
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, idx):
+        random.seed(1234)
+        if self.training and random.random() < self.drop_fraction:
+            return None  # Drop this sample
+        return self.dataset[idx]
+
+
+def custom_collate(batch):
+    # Filter out None values
+    filtered_batch = [item for item in batch if item is not None]
+    if not filtered_batch:
+        raise ValueError("All samples in the batch were dropped!")
+    
+    # Unpack and collate separately for `gene` and `out_dict`
+    genes, out_dicts = zip(*filtered_batch)
+    
+    # Convert `genes` to a PyTorch tensor
+    genes = th.tensor(np.stack(genes), dtype=th.float32)
+    
+    # Convert `out_dict` values to PyTorch tensors
+    collated_out_dict = {
+        key: th.tensor(
+            np.stack([d[key] for d in out_dicts if key in d]), dtype=th.int64
+        )
+        for key in out_dicts[0]
+    }
+    return genes, collated_out_dict
 
 
 

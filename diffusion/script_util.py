@@ -455,6 +455,8 @@ def showdata(dataset,
         """
     elif schedule_plot == "perturb":
         dataset_N, dataset_T, target = dataset 
+        mmd = maximum_mean_discrepancy (dataset_N, target)
+        logger.info(f"The mmd score is:{mmd}")
         x_merged = np.vstack([dataset_N,dataset_T, target])
         x_ump = reducer.fit_transform(x_merged)
         q_n = x_ump[:len(dataset_N)]
