@@ -99,6 +99,7 @@ def create_config():
             "dir_out": "results",
             "gene_selection": None,
             # "samples":124,
+            "drop_fraction":0,
         },
         "train":{
             "microbatch": 16,
