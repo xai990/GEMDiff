@@ -1,5 +1,4 @@
 from torch.utils.data import DataLoader, Dataset 
-from sklearn.datasets import make_s_curve 
 import torch as th 
 from . import logger 
 import pandas as pd 
@@ -7,8 +6,10 @@ import os
 import numpy as np 
 import blobfile as bf
 import random
+import pickle
 
-
+def get_blob_logdir():
+    return os.environ.get("DIFFUSION_BLOB_LOGDIR", logger.get_dir())
 
 def load_data(
     *,
@@ -38,30 +39,6 @@ def load_data(
                        labels. If classes are not available and this is True, an
                     execption will be raised. 
     """
-
-    # if data_dir == None:
-    #     s_curve, _ = make_s_curve(10**3,noise=0.1)
-    #     s_curve = s_curve[:,[0,2]]/10.0
-    #     dataset = th.Tensor(s_curve).float()
-    #     logger.log(f"Loading dataset from example data and the shape of the dataset is: {dataset.size()}")
-    #     dataset = SklearnDataset(dataset)
-    #     return dataset 
-    
-    # if not data_dir:
-    #     raise ValueError("unspecified data directory")
-    
-    # all_files = _list_files_recursively(data_dir)
-    # train_data = [file for file in all_files if "train" in file and "label" not in file]
-    # train_label = [file for file in all_files if "train" in file and "label" in file]
-    # test_data = [file for file in all_files if "test" in file and "label" not in file]
-    # test_label = [file for file in all_files if "test" in file and "label" in file]
-    # set the condition later
-    # logger.info(f"The information of {all_files} -- datasets")
-    # logger.info(f"The information of {train_data} -- datasets")
-    # logger.info(f"The information of {train_label} -- datasets")
-    # logger.info(f"The information of {test_data} -- datasets")
-    # logger.info(f"The information of {test_label} -- datasets")
-
     train_dataset = CustomGeneDataset(train_path,
                                 train_label_path,
                                 gene_set = gene_set,
@@ -79,7 +56,7 @@ def load_data(
     test_dataset = CustomGeneDataset(test_path,
                                 test_label_path,
                                 gene_set = gene_set,
-                                transform= GeneDataTransform(),
+                                transform= GeneDataTransform(is_train=False),
                                 target_transform=GeneLabelTransform(),
                                 scaler=True,
                                 filter=data_filter,
@@ -257,7 +234,24 @@ class GeneDataTransform():
     :param filter: a function which drops nan values or replace.
     
     """    
-    def __call__(self, sample, scaler= None, filter = None,):
+    def __init__(self,is_train=True):
+        self.mins = None
+        self.maxs = None
+        self.is_train = is_train
+
+    def save_params(self, path='scaling_params.pkl'):
+        checkpoint_path = os.path.join(get_blob_logdir(), path)
+        with open(checkpoint_path, 'wb') as f:
+            pickle.dump({'mins': self.mins, 'maxs': self.maxs}, f)
+            
+    def load_params(self, path='scaling_params.pkl'):
+        checkpoint_path = os.path.join(get_blob_logdir(), path)
+        with open(checkpoint_path, 'rb') as f:
+            params = pickle.load(f)
+            self.mins = params['mins']
+            self.maxs = params['maxs']
+
+    def __call__(self, sample, scaler= None, filter = None):
         
         # logger.debug(f"gene has {sample.shape[1]} genes, {sample.shape[0]} samples before pre-processing  -- mrna")
         if filter != None:
@@ -280,17 +274,19 @@ class GeneDataTransform():
         #         min_sum_col_index = np.argmin(column_sums)
         #         # drop the identified column 
         #         sample = np.delete(sample, min_sum_col_index, axis=1)
-        if scaler:
-            """ MaxAbsScaler -- can be heavily influenced by outliers. """
-            # mins, maxs = np.amin(sample, axis=0)[0], np.amax(sample, axis=0)[0]        
-            # scaler_ = np.maximum(np.abs(mins),np.abs(maxs))
-            # sample = np.divide(sample, scaler_)
-                   
+        if scaler:       
             """ Min-Max scaler"""
-            mins, maxs = sample.min(), sample.max()
-            sample = 2 * (sample - mins) / (maxs - mins) - 1
-        # comment out for test experiment     
-        # sample = sample[:,np.newaxis,:]
+            if self.is_train:
+                self.mins = sample.min()
+                self.maxs = sample.max()
+                self.save_params()  # Save parameters
+            else: 
+                self.load_params()
+                if self.mins is None or self.maxs is None:
+                    raise ValueError("Scaling parameters not found. Please process training data first.")
+            
+            sample = 2 * (sample - self.mins) / (self.maxs - self.mins) - 1
+            
         return np.array(sample, dtype=np.float32)
 
 
@@ -332,13 +328,6 @@ class GeneRandom():
         return np.array(sample[:,:], dtype=np.float32), columns
         
     
-
-def datascalar(dataset):
-
-    mins, maxs = dataset.min(), dataset.max()
-    return mins, maxs 
-
-
 def read_file(filename):
     gene_sets = {}
     if os.path.splitext(filename)[1] == '.gmt':
