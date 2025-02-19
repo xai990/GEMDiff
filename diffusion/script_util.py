@@ -225,33 +225,30 @@ def showdata(dataset,
         plt.savefig(f"{dir}/dataset-forward_{data.shape[-1]}.png")
         plt.close()
     elif schedule_plot == "origin":
-        # fig,ax = plt.subplots()      
-        data , y = dataset[:][0], dataset[:][1]['y']
+        train_data, test_data = dataset[0], dataset[1]
+        train , train_y = train_data[:][0], train_data[:][1]['y']
+        test , test_y = test_data[:][0], test_data[:][1]['y']
+        data_merge = np.vstack([train,test])
         # Define the range of parameters you want to explore
         # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
         # min_dist_options = [0.1, 0.3, 0.6, 0.9]
+        fig,axs = plt.subplots()
         color_map = ['blue','orange']
         fig,ax = plt.subplots()
-        labels = ['normal','tumor']
-        embedding = reducer.fit_transform(data)
-        for ele in y:
-            index_mask = (ele==y)
-            if np.any(index_mask):
-                label = labels[ele] if labels[ele] not in added_labels else None
-                ax.scatter(embedding[index_mask,0],
-                            embedding[index_mask,1],
-                            label = label, 
-                            color=color_map[ele],
-                            edgecolor='white')
-                if label:
-                    added_labels.add(label)
-        ax.axes.xaxis.set_ticklabels([])
-        ax.axes.yaxis.set_ticklabels([])
+        labels = ['train','test']
+
+        x_ump = reducer.fit_transform(data_merge)
+        q_i = x_ump[:len(train)]
+        q_x = x_ump[len(train):]
+        ax.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
+        ax.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
         # plt.legend(loc="upper left")
-        ax.axis('off')
+        plt.xlabel('UMAP 1')
+        plt.ylabel('UMAP 2')
+        plt.legend(loc="upper right")
         plt.tight_layout()
         plt.subplots_adjust(wspace=0., hspace=0.)
-        plt.savefig(f"{dir}/dataset_{data.shape[-1]}.png")
+        plt.savefig(f"{dir}/dataset_{train.shape[-1]}.png")
         plt.close()
     elif schedule_plot == "balance":
         # logger.debug(f"The dataset is : {dataset[:][1]} -- script_util") 
