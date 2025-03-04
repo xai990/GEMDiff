@@ -1,7 +1,7 @@
 # GEMDiff: A diffusion model bridge between normal and tumor Gene Expression Matrix
 
 This repository contains the code for the diffusion model and a neural network model for a breast cancer study case. 
-The resutls can be found on our [website](https://xai990.github.io/)
+The results can be found on our [website](https://xai990.github.io/)
 ## Installation 
 
 GEMDiff is a collection of Python scripts. Recommandatioan are for running the diffusion model on [Palmetto2](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson University research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
