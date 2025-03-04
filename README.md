@@ -4,7 +4,7 @@ This repository contains the code for the diffusion model and a neural network m
 The resutls can be found on our [website](https://xai990.github.io/)
 ## Installation 
 
-GEMDiff is a collection of Python scripts. Recommand that run diffusion model on [Palmetto](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson university research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
+GEMDiff is a collection of Python scripts. Recommandatioan are for running the diffusion model on [Palmetto2](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson University research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
 ```bash
 # load Anaconda module if needed 
 module load anaconda3/2023.09-0
@@ -26,7 +26,7 @@ pip install -e .
 
 
 ## Preparing data
-The training code reads gene expression matrix from a directory. The default folder(`"datasets"`), include training and testing GEM files and corresponding label files. 
+The training code reads gene expression matrix from a directory. The default folder(`"datasets"`), includes training and testing gene expression matrix (GEM) files and corresponding label files. 
 For creating/inputting your own dataset, simply format the GEM into a plain-text file with rows being samples and columns being genes. Values in each row should be separeated by tabs. If the data repository has a different name, modify it in the config file correspondingly. 
 ```
 	Gene1	Gene2	Gene3	Gene4
@@ -72,7 +72,7 @@ python scripts/sample.py --model_path "<pt file path>"  --dir "<log directory pa
 
 
 ## Plotting and qualifying cluster 
-The plotting script visulizes data by UMAP plot and assign the silhouette score as the cluster quaility. 
+The plotting script visualizes data by UMAP plot and assign the silhouette score as the cluster quaility. 
 ```
 python scripts/gene.py --config "<config file path>" --dir "<log directory path>"  
 ```
