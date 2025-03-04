@@ -25,7 +25,7 @@ pip install -e .
 ```
 
 
-## Perparing data
+## Preparing data
 The training code reads gene expression matrix from a directory. The default folder(`"datasets"`), include training and testing GEM files and corresponding label files. 
 For creating/inputting your own dataset, simply format the GEM into a plain-text file with rows being samples and columns being genes. Values in each row should be separeated by tabs. If the data repository has a different name, modify it in the config file correspondingly. 
 ```
