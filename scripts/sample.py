@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch as th
 import torch.distributed as dist
-from diffusion.datasets import load_data, datascalar
+from diffusion.datasets import load_data
 from diffusion import dist_util, logger
 from diffusion.script_util import (
     model_and_diffusion_defaults,
