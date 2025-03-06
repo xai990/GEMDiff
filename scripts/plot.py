@@ -23,6 +23,7 @@ def main(args):
     basic_conf = create_config()
     input_conf = OmegaConf.load(args.config)
     config = OmegaConf.merge(basic_conf, input_conf)
+    logger.log(f"Config information:{config}")
     # load data 
     train_data, test_data = load_data(train_path = config.data.train_path,
                     train_label_path = config.data.train_label_path,
@@ -33,7 +34,8 @@ def main(args):
                     gene_set = args.gene_set,
     )
     loader = data_loader(train_data,
-                    batch_size=config.train.batch_size,            
+                    batch_size=config.train.batch_size,
+                    deterministic=True,            
     ) 
     # train_data, test_data = load_data(data_dir = config.data.data_dir,
     #                 gene_selection = config.model.feature_size,
@@ -53,13 +55,19 @@ def main(args):
     #          diffusion=diffusion, 
     #          num_steps = config.diffusion.diffusion_steps,
     # )
-    # load the fake data 
-    file_path = args.sample_path
-    data_fake = np.load(file_path)
+    if args.plot == "sample":
+        # load the fake data 
+        file_path = args.sample_path
+        data_fake = np.load(file_path)
 
-    logger.log("Plot the synthesis data with UMAP")
-    out_path = os.path.join(args.dir_out,datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
-    showdata(test_data,dir = out_path, schedule_plot = "reverse", synthesis_data=data_fake,n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
+        logger.log("Plot the synthesis data with UMAP")
+        out_path = os.path.join(args.dir_out,datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+        showdata(test_data,dir = out_path, schedule_plot = "reverse", synthesis_data=data_fake,n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
+    elif args.plot == "origin":
+        logger.log("Plot the original data with UMAP")
+        out_path = os.path.join(args.dir_out,datetime.datetime.now().strftime("%Y-%m-%d-%H-%M"))
+        showdata([train_data, test_data],dir = out_path, schedule_plot = "origin",n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
+    """
     # Create an SVM classifier
     svm = SVC(kernel='linear')
     for X_batch, y_batch in loader:
@@ -87,6 +95,7 @@ def main(args):
     y_pred = svm.predict(generated_data)
     accuracy = accuracy_score(generated_labels, y_pred)
     logger.log(f'The synthesis dataset Accuracy: {100 * accuracy :.2f}%')
+    """
     logger.log("plot complete...")
 
 
@@ -114,8 +123,7 @@ def create_config():
         "umap":{
             "n_neighbors":90,
             "min_dist":0.3,
-        }
-
+        },
     }
     # defaults.update(model_and_diffusion_defaults())
    
@@ -130,5 +138,6 @@ if __name__ == "__main__":
     parser.add_argument("--dir", type=str, default="log/")
     parser.add_argument("--sample_path", type=str, default=None)
     parser.add_argument("--gene_set", type=str, default="Random")
+    parser.add_argument("--plot", type=str, default="sample")
     args = parser.parse_args()
     main(args)
