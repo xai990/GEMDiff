@@ -209,10 +209,18 @@ class CustomGeneDataset(Dataset):
         return np.array(self.gene[idx], dtype=np.float32), out_dict
 
 
+    def save_gene(self, path="random_gene.txt"):
+        formmated_gene = "\t".join(self.columns)
+        content = f"Random\t{formmated_gene}"
+        checkpoint_path = os.path.join(get_blob_logdir(), path)
+        with open(checkpoint_path, 'w') as f:
+            f.write(content)  
+
+
     def find_gene(self, gene_index):
         # assert self.random_selection is not None, "Find gene only be available when random select gene"
         gene_list = self.columns[gene_index]
-            
+          
         return gene_list
     
     def find_sample(self, sample_name):

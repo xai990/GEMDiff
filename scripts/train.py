@@ -44,8 +44,13 @@ def main(args):
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
                     train=True,
+                    random= config.data.random,
                     data_filter=config.data.filter,
     )
+    
+    if config.data.random: # save the gene feature if true random 
+        train_data.save_gene()
+
     logger.info(f"The size of train dataset: {train_data[:][0].shape}")
     # logger.info(f"The size of test dataset: {test_data[:][0].shape}")
 
@@ -135,6 +140,7 @@ def create_config():
             "gene_selection": None,
             "samples":124,
             "drop_fraction":0,
+            "random": False
         },
         "train":{
             "microbatch": 16,
