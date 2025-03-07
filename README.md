@@ -50,7 +50,6 @@ GeneSet1	Gene1	Gene2	Gene3
 The config file is in YAML format and contains four stanzas: (1) data: GEM, label, directory paths, locations, (2) model: model architecture hyperparameters, (3) diffusion: diffusion process hyperparameters, (4) train: training hyperparameters.  The default hyperparameters hard-coded in the train.py script can be overridden in the config file.  Here is an example config file.  
 ```
 data:
-  data_dir: "datasets/"
   dir_out: "results"
   train_path: "datasets/KIDN_KIRP.train"
   train_label_path: "datasets/KIDN_KIRP.train.label"
@@ -114,3 +113,23 @@ python scripts/gene.py --config "<config file path>" --dir "<log directory path>
 `--balance` is to set the sample number of each label data shown on the figure. 
 `--random` is to assign different seeds each time running the script. 
 `--vaild` is to plot the test dataset. 
+
+The detailed descriptions about the config parameter are as following:
+| Parameter name | Description of parameter |
+| --- | --- |
+| config.data.train_path                | Path to the training dataset file                                     |
+| config.data.train_label_path          | Path to the training dataset labels                                |
+| config.data.test_path                | Path to the test dataset file                                 |
+| config.data.test_label_path          | Path to the test dataset labels                                |
+| config.data.filter                   | Data filtering option: set to 'replace' to substitute 'NA' values, null for no filtering                        |
+| config.data.corerate                 | Number of standard deviations from the perturbation mean to filter data                              |
+| config.model.class_cond                  | Enable class conditioning in the model                        |
+| config.model.dropout                 | Dropout rate for regularization (0.0 means no dropout)                              |
+| config.model.n_layer                  | Number of layers in the model architecture                        |
+| config.model.n_head                 | Number of attention heads in each layer                             |
+| config.model.feature_size            | Dimension size of feature embeddings   (has to be set as same as dimension size of gene features                 |
+
+
+
+
+
