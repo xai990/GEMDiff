@@ -1,0 +1,4 @@
+omegaconf == 2.3.0
+blobfile == 3.0.0
+mpi4py == 4.0.3
+umap-learn[plot]
