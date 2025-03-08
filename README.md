@@ -67,8 +67,6 @@ model:
   
 diffusion:
   noise_schedule: "cosine"
-  linear_start: 0.0001 
-  linear_end: 0.0195
   diffusion_steps: 1000
   log_every_t: 10
   learn_sigma: False
@@ -128,6 +126,23 @@ The detailed descriptions about the config parameter are as following:
 | config.model.n_layer                  | Number of layers in the model architecture                        |
 | config.model.n_head                 | Number of attention heads in each layer                             |
 | config.model.feature_size            | Dimension size of feature embeddings   (has to be set as same as dimension size of gene features                 |
+| config.diffusion.noise_schedule            | Type of noise schedule for diffusion process (defaults to `cosine`)                |
+| config.diffusion.diffusion_steps            | Total number of steps in the diffusion process (defaults to `1000`)                |
+| config.diffusion.log_every_t            | Log data every N diffusion timesteps (defaults to `10`)                |
+| config.diffusion.learn_sigma            | If True, model learns the variance parameter; if False, variance is fixed            |
+| config.train.lr            | Learning rate for optimizer during training (defaults to `3e-5`)             |
+| config.train.num_epoch            | Number of training epochs (defaults to `10001`)            |
+| config.train.batch_size            | Number of samples processed in each training batch (defaults to `32`)            |
+| config.train.schedule_plot            | If True, save the schedule plots during the diffusion process            |
+| config.train.log_interval            | How often to log training metrics (defaults to `100`)            |
+| config.train.save_interval            | How often to save model checkpoints (defaults to `10000`)            |
+
+
+
+
+
+
+
 
 
 
