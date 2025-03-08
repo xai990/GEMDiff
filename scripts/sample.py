@@ -46,6 +46,7 @@ def main(args):
     # Create model and diffusion process from config
     logger.log("Load model ... ")
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+    # Load model weights from checkpoint (using EMA weights)
     model.load_state_dict(state_dict["ema"]) # ema or model state
     model.to(dist_util.dev())
     model.eval()
