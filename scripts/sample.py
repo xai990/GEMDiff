@@ -1,4 +1,13 @@
+"""
+Gene Expression Sample Generation Script
 
+This script loads a pretrained diffusion model and generates synthetic gene expression samples.
+It uses a trained model checkpoint to generate gene expression profiles with specified class labels.
+The generated samples are saved as numpy arrays for further analysis or evaluation.
+
+Usage:
+    python sample.py --model_path [path_to_checkpoint] --dir_out [output_directory] --dir [log_directory]
+"""
 import argparse
 import os
 
@@ -18,30 +27,34 @@ import datetime
 def main(args):
     #args = create_argparser().parse_args()
     now = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%S")
+    # Set up distributed training environment
     dist_util.setup_dist()
+    # Configure logging
     logger.configure(dir=args.dir)
-    # configure the dir out 
-    
     logger.log("Load the config...")
     ckpt_path = args.model_path
     state_dict = find_model(ckpt_path)
     basic_conf = create_config()
+    # Load model configuration from checkpoint
     loaded_conf = state_dict["conf"]
     config = OmegaConf.merge(basic_conf, loaded_conf)
     dir_out = os.path.join(args.dir_out, now,)
     logger.log(config)
+    # Convert configuration to container format
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
-    
+    # Create model and diffusion process from config
     logger.log("Load model ... ")
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
+    # Load model weights from checkpoint (using EMA weights)
     model.load_state_dict(state_dict["ema"]) # ema or model state
     model.to(dist_util.dev())
     model.eval()
-    
+    # Begin sampling process
     logger.log("sampling...")
     all_genes = []
     all_labels = []
+    # Generate samples until we reach the desired number
     while len(all_genes) * config.sample.batch_size < config.sample.num_samples:
         model_kwargs = {}
         if config.model.class_cond:
@@ -71,12 +84,14 @@ def main(args):
             dist.all_gather(gathered_labels, classes)
             all_labels.extend([labels.cpu().numpy() for labels in gathered_labels])
         logger.log(f"created {len(all_genes) * config.sample.batch_size} samples")
-
+    # Concatenate all generated samples
     arr = np.concatenate(all_genes, axis=0)
     arr = arr[: config.sample.num_samples]
+    # Concatenate all labels if class-conditioned
     if config.model.class_cond:
         label_arr = np.concatenate(all_labels, axis=0)
         label_arr = label_arr[: config.sample.num_samples]
+    # Save samples on the main process only
     if dist.get_rank() == 0:
         shape_str = "x".join([str(x) for x in arr.shape])
         os.makedirs(dir_out,exist_ok=True)

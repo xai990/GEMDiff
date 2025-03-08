@@ -24,11 +24,14 @@ from collections import OrderedDict
 
 
 def main(args):
+    # Configure the logger with specified directory
     logger.configure(dir=args.dir)
     logger.log("**********************************")
     logger.log("log configure")
+    # Setup distributed training environment
     dist_util.setup_dist()
     logger.log(f"device information:{dist_util.dev()}")
+    # Create and merge configuration files
     basic_conf = create_config()
     input_conf = OmegaConf.load(args.config)
     config = OmegaConf.merge(basic_conf, input_conf)
@@ -38,8 +41,6 @@ def main(args):
 
     train_data = load_data(train_path = config.data.train_path,
                     train_label_path = config.data.train_label_path,
-                    # test_path = config.data.test_path,
-                    # test_label_path = config.data.test_label_path,
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
@@ -47,21 +48,17 @@ def main(args):
                     random= config.data.random,
                     data_filter=config.data.filter,
     )
-    
-    if config.data.random: # save the gene feature if true random 
+    # Save the selected gene features if using random selection
+    if config.data.random:
         train_data.save_gene()
 
-    logger.info(f"The size of train dataset: {train_data[:][0].shape}")
-    # logger.info(f"The size of test dataset: {test_data[:][0].shape}")
-
-    
-    # logger.debug(f"The size of dataset is :{dataset}")
-       
+    logger.info(f"The size of train dataset: {train_data[:][0].shape}")       
+    # Create data loader with batching and potential dropout
     loader = data_loader(train_data,
                     batch_size=config.train.batch_size,
-                    # deterministic=True,
                     drop_fraction = config.data.drop_fraction,            
-    ) 
+    )
+    # Count batches and samples for logging 
     batch_count = 0
     sample_count = 0
     for batch in loader:
@@ -74,15 +71,14 @@ def main(args):
         # config.model.feature_size =  dataset[:][0].shape[-1]
     #     logger.log(f"*{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
     
-    ## need to reconsider the patch size 
-    ## here is a hard way, make the patch size is equal to the feature size
+    # Set model configuration parameters
     config.model.patch_size = config.model.feature_size
     config.model.n_embd = config.model.patch_size * 8
     
     logger.info(config)
     model_config = OmegaConf.to_container(config.model, resolve=True)
     diffusion_config = OmegaConf.to_container(config.diffusion, resolve=True)
-    
+    # Create model and diffusion process
     logger.log("creating model and diffusion ... ")
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     model.to(dist_util.dev())
@@ -95,7 +91,7 @@ def main(args):
     update_ema(ema, model, decay=0)  # Ensure EMA is initialized with synced weights
     model.train()  # important! This enables embedding dropout for classifier-free guidance
     ema.eval()  # EMA model should always be in eval mode
-
+    # Training loop
     for epoch in range(config.train.num_epoch):
         for idx,batch_x in enumerate(loader):
             batch, cond = batch_x
