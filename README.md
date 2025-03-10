@@ -110,7 +110,7 @@ python scripts/gene.py --config "<config file path>" --dir "<log directory path>
 `--gene_set` is an optional input for gene set list, default as "Random".
 `--balance` is to set the sample number of each label data shown on the figure. 
 `--random` is to assign different seeds each time running the script. 
-`--vaild` is to plot the test dataset. 
+`--valid` is to plot the test dataset. 
 
 The detailed descriptions about the config parameter are as following:
 | Parameter name | Description of parameter |
