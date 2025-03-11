@@ -80,6 +80,9 @@ train:
   # save_interval: 1
 ```
 
+## co-lab example
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ssJGavsFgiFfMMgVfHXz1YXf0HFzZS5G?usp=sharing)
+
 ## Training the Diffusion Model
 To train your model, there are some hyperparameters with default values in the train.py script. Hyperparameters are split into three groups: model architecture ("model:" in config file), diffusion process ("diffusion:" in config file), and training ("train:" in config file) flags. We include some reasonable defaults for baseline [config files](configs). The default hyperparameters hard-coded in the train.py script can be overridden in the config file.  The hyperparameters will be stored in the trained model file (e.g. model10000.pt stored in the log directory). Once you have set up your hyperparameters, you can run an experiment like this:
 
