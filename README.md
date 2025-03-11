@@ -80,7 +80,8 @@ train:
   # save_interval: 1
 ```
 
-## co-lab example
+## Colab example
+Colab Examples: We provide google colabs to help reproduce and customize our repo, which includes experiments train and perturb and visualization.
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1ssJGavsFgiFfMMgVfHXz1YXf0HFzZS5G?usp=sharing)
 
 ## Training the Diffusion Model
