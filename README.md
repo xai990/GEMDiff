@@ -145,7 +145,7 @@ The detailed descriptions about the config parameter are as following:
 
 
 ## <span id="citelink">Citation</span>
-If you find this repository useful in your research, please consider citing the following papers:
+If you find this repository useful in your research, please consider citing our paper:
 
 ```
 @article{10.1093/bib/bbaf093,
