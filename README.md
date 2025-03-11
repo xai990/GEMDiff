@@ -1,7 +1,7 @@
 # GEMDiff: A diffusion model bridge between normal and tumor Gene Expression Matrix
 
 This repository contains the code for the diffusion model and a neural network model for a breast cancer study case. This input files for this datset will be provided soon.
-The results can be found on our [website](https://xai990.github.io/)
+The results can be found on our [paper](https://academic.oup.com/bib/article/26/2/bbaf093/8069412?utm_source=advanceaccess&utm_campaign=bib&utm_medium=email)/[website](https://xai990.github.io/)
 
 ## Installation 
 GEMDiff is a collection of Python scripts. Recommendation are for running the diffusion model on [Palmetto2](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson University research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
@@ -144,7 +144,26 @@ The detailed descriptions about the config parameter are as following:
 
 
 
+## <span id="citelink">Citation</span>
+If you find this repository useful in your research, please consider citing the following papers:
 
+```
+@article{10.1093/bib/bbaf093,
+    author = {Ai, Xusheng and Smith, Melissa C and Feltus, F Alex},
+    title = {GEMDiff: a diffusion workflow bridges between normal and tumor gene expression states: a breast cancer case study},
+    journal = {Briefings in Bioinformatics},
+    volume = {26},
+    number = {2},
+    pages = {bbaf093},
+    year = {2025},
+    month = {03},
+    issn = {1477-4054},
+    doi = {10.1093/bib/bbaf093},
+    url = {https://doi.org/10.1093/bib/bbaf093},
+    eprint = {https://academic.oup.com/bib/article-pdf/26/2/bbaf093/62374997/bbaf093.pdf},
+}
+	
+```
 
 
 
