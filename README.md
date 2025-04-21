@@ -10,14 +10,14 @@ GEMDiff is a collection of Python scripts. Recommendation are for running the di
 module load anaconda3/2023.09-0
 
 # clone repository
-git clone https://github.com/xai990/DGEMDiff.git
+git clone https://github.com/xai990/GEMDiff.git
 
 cd GEMDiff
 # create conda environment called "GEMDiff"
-conda env create -f environment.yml -n GEMDiff
+conda env create -f environment.yml -n gemdiffenv
 
 # activate the created conda environment
-source activate GEMDiff
+source activate gemdiffenv
 
 # install the package
 pip install -e . 
