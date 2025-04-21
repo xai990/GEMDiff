@@ -14,7 +14,7 @@ git clone https://github.com/xai990/DGEMDiff.git
 
 cd GEMDiff
 # create conda environment called "GEMDiff"
-conda env create -f environment.yml
+conda env create -f environment.yml -n GEMDiff
 
 # activate the created conda environment
 source activate GEMDiff
