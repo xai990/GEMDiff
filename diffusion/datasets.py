@@ -50,6 +50,7 @@ def load_data(
                                 class_cond =class_cond,
     )
     logger.log(f"After data pre-processing, the dataset contains {train_dataset[:][0].shape[-1]} gene.")
+
     if train:
         return train_dataset
      
@@ -168,6 +169,7 @@ class CustomGeneDataset(Dataset):
                 # logger.debug(f"The intersection is : {df.columns} -- dataset")
                 logger.info(f"The intersection geneset is: {df.columns.intersection(geneset['genes'])} -- dataset")
                 df = df[df.columns.intersection(geneset['genes'])]
+                
             logger.log(f"loaded selected data has {df.shape[1]} genes, {df.shape[0]} samples")
             
         gene_features = df.values
@@ -180,6 +182,8 @@ class CustomGeneDataset(Dataset):
         self.classes = classes
         self.random_selection = random_selection
         columns = df.columns
+        logger.log(f"The dataframe columns information is {columns}")
+        logger.log(f"The lenth columns information is {len(columns)}")
         if transform:
             gene = transform(gene_features, scaler, filter)
 
@@ -196,6 +200,7 @@ class CustomGeneDataset(Dataset):
         self.label = label
         self.index = df.index
         logger.info(f"The selected genes are: {columns} -- dataset")
+        
                 
 
     def __len__(self):
@@ -224,12 +229,14 @@ class CustomGeneDataset(Dataset):
         return gene_list
     
     def find_sample(self, sample_name):
-        
         regex_pattern = '|'.join(sample_name)
         mask = self.index.to_series().str.contains(regex_pattern, case=False, na=False)
         numeric_indices = mask[mask].index.tolist()
         integer_indices = [i for i, x in enumerate(mask) if x]
         return integer_indices
+
+    def show_classes(self):
+        return self.classes
 
 
 
