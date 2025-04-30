@@ -12,7 +12,7 @@ import numpy as np
 import random
 from sklearn.metrics import silhouette_score 
 from .datasets import sample_screen, balance_sample
-
+import matplotlib.cm as cm
 
 NUM_CLASSES = 2
 
@@ -236,7 +236,6 @@ def showdata(dataset,
         color_map = ['blue','orange']
         fig,ax = plt.subplots()
         labels = ['train','test']
-
         x_ump = reducer.fit_transform(data_merge)
         q_i = x_ump[:len(train)]
         q_x = x_ump[len(train):]
@@ -250,70 +249,40 @@ def showdata(dataset,
         plt.subplots_adjust(wspace=0., hspace=0.)
         plt.savefig(f"{dir}/dataset_{train.shape[-1]}.png")
         plt.close()
-    elif schedule_plot == "balance":
+    elif schedule_plot == "stage":
         # logger.debug(f"The dataset is : {dataset[:][1]} -- script_util") 
-        color_map = ['blue','orange']
         fig,axs = plt.subplots()
-        labels = ['normal','tumor']
-        dataset_N,dataset_T = sample_screen(dataset)
-        dataset_N, dataset_T = balance_sample([dataset_N,dataset_T])
-        data_merge = np.vstack([dataset_N,dataset_T])
-        x_ump = reducer.fit_transform(data_merge)
-        q_i = x_ump[:len(dataset_N)]
-        q_x = x_ump[len(dataset_N):]
-        # use Silhouette Score as standard for the plot 
-        # logger.info("*********************************************************")
-        # logger.log(f"{geneset} experiemnt of silhouette score: {score}")
-        # logger.info("*********************************************************")
-        # titles = [f"Geneset {geneset} with silhouette score {score:.3f}"]
-        axs.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
-        axs.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
-        # axs.set_title(titles[0])
-        axs.axis('off')
-        plt.legend(loc="upper right", bbox_to_anchor=(1.2, 1))
-        # ax.axes.xaxis.set_ticklabels([])
-        # ax.axes.yaxis.set_ticklabels([])
-        plt.tight_layout(pad=1.0)
-        plt.savefig(f"{dir}/{geneset}_{data_merge.shape[-1]}.png")
+        data,y_r = dataset[:][0],dataset[:][1]['y']
+        # logger.debug(f"The labels info is:{y_r}")
+        labels = dataset.show_classes()
+        x_ump = reducer.fit_transform(data)
+        q_i = x_ump
+        score = silhouette_score(q_i, y_r)
+        added_labels = set()
+        # Plot
+        for ele in y_r:
+            index_mask = (ele==y_r)
+            if np.any(index_mask):
+                label = labels[ele] if labels[ele] not in added_labels else None
+                axs.scatter(q_i[index_mask,0],
+                            q_i[index_mask,1],
+                            label = label, 
+                            color=cm.get_cmap('tab10').colors[ele],
+                            edgecolor='white')
+                if label:
+                    added_labels.add(label)
+        
+        axs.axes.xaxis.set_ticklabels([])
+        axs.axes.yaxis.set_ticklabels([])
+        plt.xlabel('UMAP 1')
+        plt.ylabel('UMAP 2')
+        plt.tight_layout()
+        plt.subplots_adjust(wspace=0., hspace=0.)
+        plt.legend(loc="upper right")
+        fig.text(0.1, 0.1, f"The score is:{score:.2f}", fontsize=12, color='red',ha='left', va='bottom')
+        plt.savefig(f"{dir}/StageUMAP_{data.shape[-1]}.png")
         plt.close()
-        """
-        # Setup the subplot grid
-        fig, axes = plt.subplots(nrows=len(n_neighbors_options), ncols=len(min_dist_options), figsize=(15, 15))
-        for i, n_neighbors in enumerate(n_neighbors_options):
-            for j, min_dist in enumerate(min_dist_options):
-                # Create UMAP model
-                reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=41)
-                embedding = reducer.fit_transform(data)
-                # Plot
-                ax = axes[i,j]  # Get a specific subplot axis
-                added_labels.clear()
-                for ele in y:
-                    index_mask = (ele==y)
-                    if np.any(index_mask):
-                        label = labels[ele] if labels[ele] not in added_labels else None
-                        ax.scatter(embedding[index_mask,0],
-                                    embedding[index_mask,1],
-                                    label = label, 
-                                    color=color_map[ele],
-                                    edgecolor='white')
-                        if label:
-                            added_labels.add(label)
-                # scatter = ax.scatter(embedding[:, 0], embedding[:, 1], c=y, cmap='viridis', s=5)
-                # ax.set_title(f'n_neighbors={n_neighbors}, min_dist={min_dist}')
-                if i == 0:
-                    ax.set_xlabel(f'{min_dist}')
-                    ax.xaxis.set_label_position('top')
-                if j == 0:
-                    ax.set_ylabel(f'{n_neighbors}')
-                ax.axes.xaxis.set_ticklabels([])
-                ax.axes.yaxis.set_ticklabels([])
-                # ax.axis('off')
-        """
-        # handles, labels = axes[0, 0].get_legend_handles_labels()
-        # handles, labels = ax.get_legend_handles_labels()
-        # fig.legend(handles, labels, loc='upper left', ncol=3)
-        # fig.text(0.5, 1,'min_dist',ha='center',)
-        # fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
+       
        
     elif schedule_plot == "reverse":
         data_r , y_r = dataset[:][0], dataset[:][1]['y']
