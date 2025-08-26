@@ -39,6 +39,7 @@ def main(args):
                     gene_selection = config.model.feature_size,
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
+                    data_filter=config.data.filter,
     )
    
     data = test_data if args.valid else train_data
