@@ -1,0 +1,31 @@
+data:
+  train_path: "data/pancreatic/paad_train_GEM.txt"
+  train_label_path: "data/pancreatic/paad_train_labels.txt"
+  test_path: "data/pancreatic/paad_test_GEM.txt"
+  test_label_path: "data/pancreatic/paad_test_labels.txt"
+  dir_out: "results"
+  filter: "replace"
+  corerate: 1
+  random: false
+  drop_fraction: 0
+
+model:
+  class_cond: true
+  dropout: 0.0
+  n_layer: 4
+  n_head: 4
+  feature_size: 512
+
+diffusion:
+  noise_schedule: "cosine"
+  diffusion_steps: 1000
+  log_every_t: 10
+  learn_sigma: false
+
+train:
+  lr: 0.00003
+  batch_size: 32
+  schedule_plot: false
+  num_epoch: 10
+  log_interval: 1
+  save_interval: 1000000

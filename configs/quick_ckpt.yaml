@@ -1,0 +1,25 @@
+data:
+  train_path: /Users/alex/cpsc/5990/GemDiff/GEMDiff/data/example_train.txt
+  train_label_path: /Users/alex/cpsc/5990/GemDiff/GEMDiff/data/example_train_labels.txt
+  test_path: /Users/alex/cpsc/5990/GemDiff/GEMDiff/data/example_test.txt
+  test_label_path: /Users/alex/cpsc/5990/GemDiff/GEMDiff/data/example_test_labels.txt
+  filter: replace
+  corerate: 1
+model:
+  class_cond: true
+  dropout: 0.0
+  n_layer: 2
+  n_head: 2
+  feature_size: 16
+diffusion:
+  noise_schedule: cosine
+  diffusion_steps: 50
+  log_every_t: 10
+  learn_sigma: false
+train:
+  lr: 3.0e-05
+  num_epoch: 6
+  batch_size: 32
+  schedule_plot: false
+  log_interval: 1
+  save_interval: 5

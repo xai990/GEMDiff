@@ -1,0 +1,8 @@
+LICENSE
+README.md
+setup.py
+GEMDiff.egg-info/PKG-INFO
+GEMDiff.egg-info/SOURCES.txt
+GEMDiff.egg-info/dependency_links.txt
+GEMDiff.egg-info/requires.txt
+GEMDiff.egg-info/top_level.txt

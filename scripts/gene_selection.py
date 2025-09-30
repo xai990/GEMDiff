@@ -59,7 +59,7 @@ def create_config():
     
     defaults = {
         "data":{
-            "data_path": "datasets/breast_train_GEM_transpose.txt",
+            "data_path": "data/pancreatic/paad_train_GEM.txt",
             "cond": True,
             "gene_select": 16,
         },

@@ -2,3 +2,9 @@ omegaconf == 2.3.0
 blobfile == 3.0.0
 mpi4py == 4.0.3
 umap-learn[plot]
+scikit-learn >= 1.2
+pandas >= 2.0
+numpy >= 1.23
+matplotlib >= 3.8
+seaborn >= 0.13
+harmonypy >= 0.0.10

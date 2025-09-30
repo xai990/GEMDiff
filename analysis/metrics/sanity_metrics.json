@@ -1,0 +1,23 @@
+[
+  {
+    "knn_accuracy": 0.9772727272727273,
+    "roc_auc": 0.7674418604651163,
+    "auprc": 0.9940810255143335,
+    "silhouette_batch": -0.6305909156799316,
+    "correction": "none"
+  },
+  {
+    "knn_accuracy": 0.9772727272727273,
+    "roc_auc": 1.0,
+    "auprc": 1.0000000000000002,
+    "silhouette_batch": -0.6421590447425842,
+    "correction": "batch_center"
+  },
+  {
+    "knn_accuracy": 0.9772727272727273,
+    "roc_auc": 0.7674418604651163,
+    "auprc": 0.9940810255143335,
+    "silhouette_batch": -0.6305909156799316,
+    "correction": "combat"
+  }
+]

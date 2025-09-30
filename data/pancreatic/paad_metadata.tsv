@@ -1,0 +1,184 @@
+sample_id	split	label	batch
+TCGA-2J-AAB1-01A	train	tumor	Mayo Clinic
+TCGA-2J-AAB4-01A	train	tumor	Mayo Clinic
+TCGA-2J-AAB6-01A	train	tumor	Mayo Clinic
+TCGA-2J-AAB8-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABA-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABE-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABI-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABK-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABO-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABP-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABT-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABU-01A	train	tumor	Mayo Clinic
+TCGA-2J-AABV-01A	train	tumor	Mayo Clinic
+TCGA-2L-AAQA-01A	train	tumor	Technical University of Munich
+TCGA-2L-AAQE-01A	train	tumor	Technical University of Munich
+TCGA-2L-AAQJ-01A	train	tumor	Technical University of Munich
+TCGA-2L-AAQM-01A	train	tumor	Technical University of Munich
+TCGA-3A-A9I5-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9I7-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IH-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IJ-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IL-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IN-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IO-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IR-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IS-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IU-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IV-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IX-01A	train	tumor	Moffitt Cancer Center
+TCGA-3A-A9IZ-01A	train	tumor	Moffitt Cancer Center
+TCGA-3E-AAAY-01A	train	tumor	Columbia University
+TCGA-F2-6880-01A	train	tumor	UNC
+TCGA-F2-7273-01A	train	tumor	UNC
+TCGA-F2-7276-01A	train	tumor	UNC
+TCGA-F2-A44G-01A	train	tumor	UNC
+TCGA-F2-A44H-01A	train	tumor	UNC
+TCGA-F2-A7TX-01A	train	tumor	UNC
+TCGA-FB-A4P5-01A	train	tumor	Asterand
+TCGA-FB-A545-01A	train	tumor	Asterand
+TCGA-FB-A5VM-01A	train	tumor	Asterand
+TCGA-FB-A78T-01A	train	tumor	Asterand
+TCGA-FB-A7DR-01A	train	tumor	Asterand
+TCGA-FB-AAPQ-01A	train	tumor	Asterand
+TCGA-FB-AAPS-01A	train	tumor	Asterand
+TCGA-FB-AAPU-01A	train	tumor	Asterand
+TCGA-FB-AAPY-01A	train	tumor	Asterand
+TCGA-FB-AAPZ-01A	train	tumor	Asterand
+TCGA-FB-AAQ0-01A	train	tumor	Asterand
+TCGA-FB-AAQ2-01A	train	tumor	Asterand
+TCGA-FB-AAQ3-01A	train	tumor	Asterand
+TCGA-H6-8124-01A	train	tumor	Christiana Healthcare
+TCGA-H6-A45N-11A	train	normal	Christiana Healthcare
+TCGA-H8-A6C1-01A	train	tumor	ABS - IUPUI
+TCGA-HV-A5A3-01A	train	tumor	National Cancer Center Korea
+TCGA-HV-A5A3-11A	train	normal	National Cancer Center Korea
+TCGA-HV-A5A4-01A	train	tumor	National Cancer Center Korea
+TCGA-HV-A5A5-01A	train	tumor	National Cancer Center Korea
+TCGA-HV-A5A6-01A	train	tumor	National Cancer Center Korea
+TCGA-HV-A7OL-01A	train	tumor	National Cancer Center Korea
+TCGA-HV-AA8X-01A	train	tumor	National Cancer Center Korea
+TCGA-HZ-7289-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-7919-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-7922-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-7924-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-7925-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-7926-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8001-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8002-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8003-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8315-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8317-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8519-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8637-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-8638-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A49H-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A49I-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A4BH-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A4BK-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A77O-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A77P-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A77Q-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A8P0-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A9TJ-01A	train	tumor	International Genomics Consortium
+TCGA-HZ-A9TJ-06A	train	tumor	International Genomics Consortium
+TCGA-IB-7644-01A	train	tumor	Alberta Health Services
+TCGA-IB-7646-01A	train	tumor	Alberta Health Services
+TCGA-IB-7647-01A	train	tumor	Alberta Health Services
+TCGA-IB-7651-01A	train	tumor	Alberta Health Services
+TCGA-IB-7885-01A	train	tumor	Alberta Health Services
+TCGA-IB-7886-01A	train	tumor	Alberta Health Services
+TCGA-IB-7887-01A	train	tumor	Alberta Health Services
+TCGA-IB-7888-01A	train	tumor	Alberta Health Services
+TCGA-IB-7889-01A	train	tumor	Alberta Health Services
+TCGA-IB-7890-01A	train	tumor	Alberta Health Services
+TCGA-IB-7893-01A	train	tumor	Alberta Health Services
+TCGA-IB-7897-01A	train	tumor	Alberta Health Services
+TCGA-IB-8126-01A	train	tumor	Alberta Health Services
+TCGA-IB-A5SO-01A	train	tumor	Alberta Health Services
+TCGA-IB-A5SP-01A	train	tumor	Alberta Health Services
+TCGA-IB-A5SQ-01A	train	tumor	Alberta Health Services
+TCGA-IB-A5SS-01A	train	tumor	Alberta Health Services
+TCGA-IB-A5ST-01A	train	tumor	Alberta Health Services
+TCGA-IB-A6UF-01A	train	tumor	Alberta Health Services
+TCGA-IB-A6UG-01A	train	tumor	Alberta Health Services
+TCGA-IB-A7LX-01A	train	tumor	Alberta Health Services
+TCGA-IB-A7M4-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUM-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUN-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUO-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUQ-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUR-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUS-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUT-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUV-01A	train	tumor	Alberta Health Services
+TCGA-IB-AAUW-01A	train	tumor	Alberta Health Services
+TCGA-L1-A7W4-01A	train	tumor	Hartford
+TCGA-LB-A7SX-01A	train	tumor	Candler
+TCGA-LB-A9Q5-01A	train	tumor	Candler
+TCGA-M8-A5N4-01A	train	tumor	Ontario Institute for Cancer Research (OICR)
+TCGA-OE-A75W-01A	train	tumor	Saint Mary's Health Care
+TCGA-PZ-A5RE-01A	train	tumor	 ABS - Lahey Clinic
+TCGA-Q3-AA2A-01A	train	tumor	University of Oklahoma HSC
+TCGA-RB-AA9M-01A	train	tumor	Emory University
+TCGA-RL-AAAS-01A	train	tumor	St. Joseph's Hospital AZ
+TCGA-S4-A8RM-01A	train	tumor	University of Chicago
+TCGA-S4-A8RP-01A	train	tumor	University of Chicago
+TCGA-US-A779-01A	train	tumor	Garvan Institute of Medical Research
+TCGA-US-A77E-01A	train	tumor	Garvan Institute of Medical Research
+TCGA-US-A77G-01A	train	tumor	Garvan Institute of Medical Research
+TCGA-US-A77J-01A	train	tumor	Garvan Institute of Medical Research
+TCGA-XD-AAUG-01A	train	tumor	Providence Portland Medical Center
+TCGA-XD-AAUH-01A	train	tumor	Providence Portland Medical Center
+TCGA-XD-AAUI-01A	train	tumor	Providence Portland Medical Center
+TCGA-XN-A8T3-01A	train	tumor	University of Sao Paulo
+TCGA-YB-A89D-01A	train	tumor	Spectrum Health
+TCGA-YB-A89D-11A	train	normal	Spectrum Health
+TCGA-YH-A8SY-01A	train	tumor	Stanford University
+TCGA-YY-A8LH-01A	train	tumor	Roswell Park
+TCGA-Z5-AAPL-01A	train	tumor	Cureline
+TCGA-2J-AAB9-01A	test	tumor	Mayo Clinic
+TCGA-2J-AABF-01A	test	tumor	Mayo Clinic
+TCGA-2J-AABH-01A	test	tumor	Mayo Clinic
+TCGA-2J-AABR-01A	test	tumor	Mayo Clinic
+TCGA-2L-AAQI-01A	test	tumor	Technical University of Munich
+TCGA-2L-AAQL-01A	test	tumor	Technical University of Munich
+TCGA-3A-A9I9-01A	test	tumor	Moffitt Cancer Center
+TCGA-3A-A9IB-01A	test	tumor	Moffitt Cancer Center
+TCGA-3A-A9IC-01A	test	tumor	Moffitt Cancer Center
+TCGA-3A-A9J0-01A	test	tumor	Moffitt Cancer Center
+TCGA-3E-AAAZ-01A	test	tumor	Columbia University
+TCGA-F2-6879-01A	test	tumor	UNC
+TCGA-F2-A8YN-01A	test	tumor	UNC
+TCGA-FB-A4P6-01A	test	tumor	Asterand
+TCGA-FB-AAPP-01A	test	tumor	Asterand
+TCGA-FB-AAQ1-01A	test	tumor	Asterand
+TCGA-FB-AAQ6-01A	test	tumor	Asterand
+TCGA-H6-8124-11A	test	normal	Christiana Healthcare
+TCGA-H6-A45N-01A	test	tumor	Christiana Healthcare
+TCGA-HV-A7OP-01A	test	tumor	National Cancer Center Korea
+TCGA-HV-AA8V-01A	test	tumor	National Cancer Center Korea
+TCGA-HZ-7918-01A	test	tumor	International Genomics Consortium
+TCGA-HZ-7920-01A	test	tumor	International Genomics Consortium
+TCGA-HZ-7923-01A	test	tumor	International Genomics Consortium
+TCGA-HZ-8005-01A	test	tumor	International Genomics Consortium
+TCGA-HZ-8636-01A	test	tumor	International Genomics Consortium
+TCGA-HZ-A49G-01A	test	tumor	International Genomics Consortium
+TCGA-HZ-A8P1-01A	test	tumor	International Genomics Consortium
+TCGA-IB-7645-01A	test	tumor	Alberta Health Services
+TCGA-IB-7649-01A	test	tumor	Alberta Health Services
+TCGA-IB-7652-01A	test	tumor	Alberta Health Services
+TCGA-IB-7654-01A	test	tumor	Alberta Health Services
+TCGA-IB-7891-01A	test	tumor	Alberta Health Services
+TCGA-IB-8127-01A	test	tumor	Alberta Health Services
+TCGA-IB-AAUP-01A	test	tumor	Alberta Health Services
+TCGA-IB-AAUU-01A	test	tumor	Alberta Health Services
+TCGA-LB-A8F3-01A	test	tumor	Candler
+TCGA-Q3-A5QY-01A	test	tumor	University of Oklahoma HSC
+TCGA-RB-A7B8-01A	test	tumor	Emory University
+TCGA-S4-A8RO-01A	test	tumor	University of Chicago
+TCGA-US-A774-01A	test	tumor	Garvan Institute of Medical Research
+TCGA-US-A776-01A	test	tumor	Garvan Institute of Medical Research
+TCGA-XD-AAUL-01A	test	tumor	Providence Portland Medical Center
+TCGA-XN-A8T5-01A	test	tumor	University of Sao Paulo

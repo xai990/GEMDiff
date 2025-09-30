@@ -1,6 +1,6 @@
 # GEMDiff: A diffusion model bridge between normal and tumor Gene Expression Matrix
 
-This repository contains the code for the diffusion model and a neural network model for a breast cancer study case. This input files for this datset will be provided soon.
+This repository contains the code for the diffusion model and a neural network model that bridge normal and tumor gene expression states. The workflow now includes an end-to-end pipeline for pancreatic cancer (TCGA-PAAD) in addition to the original breast cancer study configuration.
 The results can be found on our [paper](https://academic.oup.com/bib/article/26/2/bbaf093/8069412?utm_source=advanceaccess&utm_campaign=bib&utm_medium=email)/[website](https://xai990.github.io/)
 
 ## Installation 
@@ -45,6 +45,53 @@ The gene set list is optional. The file should contain the name and genes for a 
 ```
 GeneSet1	Gene1	Gene2	Gene3
 ```
+
+### TCGA-PAAD helper script
+
+For pancreatic cancer experiments, use `scripts/preprocess_tcga_paad.py` to convert the raw TCGA files into the train/test matrices and label files expected by GEMDiff. The command below assumes the clinical and TPM expression tables are located one directory above the repository root; adjust the paths if you store the files elsewhere.
+
+```
+python scripts/preprocess_tcga_paad.py \
+  --expression ../TCGA-PAAD.star_tpm.tsv \
+  --clinical ../TCGA-PAAD.clinical.tsv \
+  --out-dir data/pancreatic \
+  --prefix paad \
+  --strip-version
+```
+
+Running the script creates `paad_*` GEM and label files under `data/pancreatic/`. The new configuration `configs/pancreatic/mrna_512.yaml` and the updated files under `configs/random/` point to these outputs.
+
+The preprocessing utility also emits a metadata table (`*_metadata.tsv`) that lists the sample IDs, split assignment, class labels, and optional batch identifiers. Downstream sanity metrics rely on this file to avoid leakage and to quantify batch effects.
+
+### Embedding sanity metrics and batch diagnostics
+
+Use `scripts/evaluate_embeddings.py` to generate the sanity checks required for Weeks 3–5 (label separability, AUROC/AUPRC, batch imprint, and visualization deliverables). The example below evaluates the pancreatic dataset and writes the outputs to `analysis/metrics/`:
+
+```
+python scripts/evaluate_embeddings.py \
+  --train data/pancreatic/paad_train_GEM.txt \
+  --train-labels data/pancreatic/paad_train_labels.txt \
+  --test data/pancreatic/paad_test_GEM.txt \
+  --test-labels data/pancreatic/paad_test_labels.txt \
+  --metadata data/pancreatic/paad_metadata.tsv \
+  --batch-column batch \
+  --positive-label tumor \
+  --curve-plots \
+  --output-dir analysis/metrics
+```
+
+By default the script benchmarks an uncorrected embedding (`none`) and a lightweight batch-centering strategy (`batch_center`). If the optional `neuroCombat` package is available, ComBat harmonisation is evaluated as well. When `harmonypy` is installed you can add `harmony` to the corrections list; selecting `mnn` currently raises an explicit error until you wire in an MNN implementation (e.g., via `mnnpy`).
+
+Each run produces:
+
+- `sanity_metrics.csv` / `sanity_metrics.json`: kNN accuracy, AUROC, AUPRC, and silhouette-by-batch for every correction strategy.
+- `embedding_<correction>_label.png`: UMAP scatter plot coloured by label.
+- `embedding_<correction>_batch.png`: matching plot coloured by batch to assess imprint.
+- (Optional) `roc_<correction>.png` and `pr_<correction>.png` when `--curve-plots` is supplied for binary tasks, using the specified `--positive-label`.
+
+At the start of each run the script prints the label index mapping (e.g.
+`Label names (encoded): {0: 'normal', 1: 'tumor'}`) so you can confirm which
+class is treated as the positive label when interpreting AUROC/AUPRC.
 
 ## Preparing Config File
 The config file is in YAML format and contains four stanzas: (1) data: GEM, label, directory paths, locations, (2) model: model architecture hyperparameters, (3) diffusion: diffusion process hyperparameters, (4) train: training hyperparameters.  The default hyperparameters hard-coded in the train.py script can be overridden in the config file.  Here is an example config file.  
@@ -164,10 +211,3 @@ If you find this repository useful in your research, please consider citing our 
 }
 	
 ```
-
-
-
-
-
-
-

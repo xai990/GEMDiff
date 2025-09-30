@@ -1,9 +1,9 @@
 data:
   # data_dir: "datasets/"
-  train_path: "datasets_breast/breast_train_GEM_transpose.txt"
-  train_label_path: "datasets_breast/train_labels.txt"
-  test_path: "datasets_breast/breast_test_GEM_transpose.txt"
-  test_label_path: "datasets_breast/test_labels.txt"
+  train_path: "data/pancreatic/paad_train_GEM.txt"
+  train_label_path: "data/pancreatic/paad_train_labels.txt"
+  test_path: "data/pancreatic/paad_test_GEM.txt"
+  test_label_path: "data/pancreatic/paad_test_labels.txt"
   dir_out: "results"
   filter: "replace"
   corerate: 1
@@ -29,4 +29,3 @@ train:
   schedule_plot: False
   # log_interval: 100
   # save_interval: 1
-
