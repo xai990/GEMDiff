@@ -50,28 +50,6 @@ def main(args):
                     class_cond=config.model.class_cond,
                     gene_set = args.gene_set,
     )
-    loader = data_loader(train_data,
-                    batch_size=config.train.batch_size,
-                    deterministic=True,            
-    ) 
-    # train_data, test_data = load_data(data_dir = config.data.data_dir,
-    #                 gene_selection = config.model.feature_size,
-    #                 class_cond=config.model.class_cond,
-    #                 gene_set = args.gene_set,
-    # )
-    # balance the train and test data 
-    # train_N, train_T = balance_sample_screen(train_data)
-    # test_N, test_T = balance_sample_screen(test_data)
-    # logger.debug(f"The shape of trian data is {train_data[:][0].shape}")
-    # logger.log("Plot the original dataset with UMAP")
-    # showdata(train_data,dir = args.dir_out, schedule_plot = "origin",n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)     
-    # logger.log("Plot the forward diffsuion process with UMAP")
-    # showdata(dataset,
-    #          dir = dir_out,
-    #          schedule_plot="forward",
-    #          diffusion=diffusion, 
-    #          num_steps = config.diffusion.diffusion_steps,
-    # )
     if args.plot == "sample":
         # load the fake data 
         file_path = args.sample_path
