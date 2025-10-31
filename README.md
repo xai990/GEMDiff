@@ -7,7 +7,7 @@ The results can be found on our [paper](https://academic.oup.com/bib/article/26/
 GEMDiff is a collection of Python scripts. Recommendation are for running the diffusion model on [Palmetto2](https://www.palmetto.clemson.edu/palmetto/) -- a Clemson University research cluster. To use the Python scripts directly, clone this repository.  All of the Python dependencies can be installed in an Anaconda environment:
 ```bash
 # load Anaconda module if needed 
-module load anaconda3/2023.09-0
+module load miniforge3
 
 # clone repository
 git clone https://github.com/xai990/GEMDiff.git
