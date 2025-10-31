@@ -13,7 +13,7 @@ module load miniforge3
 git clone https://github.com/xai990/GEMDiff.git
 
 cd GEMDiff
-# create conda environment called "GEMDiff"
+# create conda environment called "gemdiffenv"
 conda env create -f environment.yml -n gemdiffenv
 
 # activate the created conda environment
