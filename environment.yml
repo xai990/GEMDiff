@@ -2,6 +2,7 @@
 #   conda env create -f environment.yml
 name: GEMDiff
 channels:
+  - conda-forge 
   - defaults
 dependencies:
   - matplotlib
