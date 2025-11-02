@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "GEMDiff"
+version = "0.0.0"
+description = "GEMDiff package"
+requires-python = ">=3.8"
+dependencies = [
+    "blobfile>=1.0.5",
+    "torch==2.5.0",
+    "einops",
+    "omegaconf",
+    "umap-learn[plot]",
+]
+
+[tool.setuptools]
+py-modules = ["diffusion"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["*.py"]
+exclude = ["tests*", "docs*"]
