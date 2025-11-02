@@ -3,15 +3,14 @@
 name: GEMDiff
 channels:
   - conda-forge 
-  - defaults
 dependencies:
   - matplotlib
-  - numpy
+  - numpy<2.0
   - pandas
   - pip
   - pip:
     - importlib-metadata==6.0.0
-  - python >= 3.10
+  - python == 3.10
   - seaborn
   - mpi4py
   - scikit-learn
