@@ -67,10 +67,12 @@ def main(args):
 
     logger.info(f"Total batches: {batch_count}")
     logger.info(f"Total samples: {sample_count}")
-    # if dataset[:][0].shape[-1] != config.model.feature_size:
-        # config.model.feature_size =  dataset[:][0].shape[-1]
-    #     logger.log(f"*{args.gene_set} does not met the gene selection requirement, pick all genes from the set")
-    
+    assert dataset[:][0].shape[-1] == config.model.feature_size,(
+        f"Feature size mismatch: dataset has {X.shape[-1]} features, "
+        f"but config.model.feature_size = {config.model.feature_size}. "
+        "Please adjust your config or preprocessing."
+    )
+        
     # Set model configuration parameters
     config.model.patch_size = config.model.feature_size
     config.model.n_embd = config.model.patch_size * 8
