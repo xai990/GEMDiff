@@ -144,8 +144,8 @@ The detailed descriptions about the config parameter are as following:
 | config.train.schedule_plot            | If True, save the schedule plots during the diffusion process                                       |
 | config.train.log_interval             | How often to log training metrics (defaults to `100`)                                               |
 | config.train.save_interval            | How often to save model checkpoints (defaults to `10000`)                                           |
-| config.perturb.source_class            | The source class label for the perturbation input                                                  |
-| config.perturb.target_class            | The target class label for the perturbation output                                                 |
+| config.perturb.source_class            | The source class label (e.g., 'tumor', 'stageI') for the perturbation input                                                  |
+| config.perturb.target_class            | The target class label (e.g., 'normal') for the perturbation output                                                 |
 
 
 
