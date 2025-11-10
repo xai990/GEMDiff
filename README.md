@@ -124,6 +124,7 @@ python scripts/train.py --config "<config file path>" --dir "<log directory path
 The perturbing process need to load from checkpoints. The default setting is to sample from the EMAs (Exponential Moving Averages), since those produce much better transformation. 
 ```
 python scripts/pertub.py --config "<config file path>" --dir "<log directory path> --model_path "<model path> --valid" 
+```
 **Specifying source and target classes:**
 You can specify which classes to use for perturbation in the config file under the `perturb` section. This is especially useful when you have multiple classes (e.g., "normal", "stage I", "stage II") and want to control which classes are used as source and target:
 
