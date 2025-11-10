@@ -72,7 +72,7 @@ The script will:
 
 ## Preparing Config File
 The config file is in YAML format and contains four stanzas: (1) data: GEM, label, directory paths, locations, (2) model: model architecture hyperparameters, (3) diffusion: diffusion process hyperparameters, (4) train: training hyperparameters.  The default hyperparameters hard-coded in the train.py script can be overridden in the config file.  Here is an example config file.  
-```
+```yaml
 data:
   dir_out: "results"
   train_path: "datasets/KIDN_KIRP.train"
