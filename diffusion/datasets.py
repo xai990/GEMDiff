@@ -23,6 +23,7 @@ def load_data(
     gene_set = None,
     random=False,
     train=False,
+    scaler=False,
 ):
     """ 
     For a dataset, create a generate over (seq, kwars) pairs
@@ -44,7 +45,7 @@ def load_data(
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(),
                                 target_transform=GeneLabelTransform(),
-                                scaler=True,
+                                scaler=scaler,
                                 filter=data_filter,
                                 random_selection=(GeneRandom(random=random ,features=gene_selection) if gene_selection else None),
                                 class_cond =class_cond,
@@ -59,7 +60,7 @@ def load_data(
                                 gene_set = gene_set,
                                 transform= GeneDataTransform(is_train=False),
                                 target_transform=GeneLabelTransform(),
-                                scaler=True,
+                                scaler=scaler,
                                 filter=data_filter,
                                 random_selection=(GeneRandom(random=random,features=gene_selection) if gene_selection else None),
                                 class_cond =class_cond,
@@ -363,18 +364,19 @@ def read_file(filename):
     return gene_sets
 
 
-def sample_screen(dataset):
-    """ 
-    randomly select equal number of normal and tumor samples from dataset
-    
-    :param dataset: data array 
-
-    return: n number of sampels from dataset 
+def sample_screen(dataset, source_idx, target_idx):
     """
-    data , y = dataset[:][0], dataset[:][1]['y']
-    dataset_N = np.array(data[ y == 0])
-    dataset_T = np.array(data[ y == 1])
-    return np.array(dataset_N, dtype=np.float32), np.array(dataset_T, dtype=np.float32) 
+    Separate dataset into source and target classes based on class indices.
+    
+    :param dataset: Dataset object with classes and label attributes
+    :param source_idx: Index of the source class
+    :param target_idx: Index of the target class
+    :return: Tuple of (source_data, target_data) as numpy arrays
+    """
+    data, y = dataset[:][0], dataset[:][1]['y']
+    source_data = np.array(data[y == source_idx], dtype=np.float32)
+    target_data = np.array(data[y == target_idx], dtype=np.float32)
+    return source_data, target_data
     
     
 def balance_sample(dataset):
@@ -420,3 +422,4 @@ def _list_files_recursively(data_dir):
         elif bf.isdir(full_path):
             results.extend(_list_files_recursively(full_path))
     return results
+
