@@ -66,9 +66,20 @@ def main(args):
                     gene_set = args.gene_set,
                     data_filter=config.data.filter,
     )
+    classes = train_data.classes
+    logger.log(f"Available classes in dataset: {classes}")
+    assert len(classes) > 1, ("The class is not enough for the perturb experiment")
+    source_class = config.perturb.source_class if config.perturb.source_class else classes[1]
+    target_class = config.perturb.target_class if config.perturb.target_class else classes[0]
+    if source_class not in classes:
+        raise ValueError(f"Source class '{source_class}' not found in dataset classes: {classes}")
+    if target_class not in classes:
+        raise ValueError(f"Target class '{target_class}' not found in dataset classes: {classes}")
+    source_idx = classes.index(source_class)
+    target_idx = classes.index(target_class)
     # separate the tumor and normal data
-    train_N, train_T = sample_screen(train_data)
-    test_N, test_T = sample_screen(test_data)
+    train_N, train_T = sample_screen(train_data,source_idx,target_idx)
+    test_N, test_T = sample_screen(test_data,source_idx,target_idx)
     # Set model configuration parameters
     logger.log("creating model and diffusion ... ")
     logger.info(f"The model feature size is : {config.model.feature_size}")
@@ -81,15 +92,15 @@ def main(args):
     model, diffusion = create_model_and_diffusion(**model_config, **diffusion_config)
     ema= deepcopy(model)
     # Load model weights from checkpoint (using EMA weights)
-    state_dict = th.load(f"{args.model_path}")
+    state_dict = th.load(args.model_path, weights_only=False)
     ema.load_state_dict(state_dict["ema"])
     ema.to(dist_util.dev())
     ema.eval()
 
-    logger.log("pertubing the source to target")
+    logger.log(f"pertubing the source {source_class} label to target {target_class} label")
     source_label = {}
     if config.model.class_cond:
-        source_label['y'] = th.ones(test_T.shape[0] if args.valid else train_T.shape[0],device=dist_util.dev(),dtype=th.int32)
+        source_label['y'] =  th.full((test_T.shape[0] if args.valid else train_T.shape[0],), source_idx, device=dist_util.dev(), dtype=th.int32)
     noise_T = diffusion.ddim_reverse_sample_loop(
         ema,
         test_T.shape if args.valid else train_T.shape,
@@ -99,7 +110,7 @@ def main(args):
     )
     target_label = {}
     if config.model.class_cond:
-        target_label['y'] = th.zeros(test_T.shape[0] if args.valid else train_T.shape[0],device=dist_util.dev(),dtype=th.int32) 
+        target_label['y'] =  th.full((test_T.shape[0] if args.valid else train_T.shape[0],), target_idx, device=dist_util.dev(), dtype=th.int32) 
     target = diffusion.ddim_sample_loop(ema,noise_T.shape,noise= noise_T,clip_denoised=False,model_kwargs=target_label)
     shape_str = "x".join([str(x) for x in noise_T.shape])
     out_path = os.path.join(get_blob_logdir(), f"reverse_sample_{shape_str}.npz")
@@ -129,7 +140,6 @@ def create_config():
             "data_dir": None,
             "dir_out": "results",
             "gene_selection": None,
-            # "samples":124,
             "drop_fraction":0,
         },
         "train":{
@@ -143,7 +153,8 @@ def create_config():
             "schedule_sampler":"uniform",
         },
         "perturb":{
-            # "samples":124,
+            "source_class": "tumor",
+            "target_class": "normal",
         },
         "umap":{
             "n_neighbors":90,
