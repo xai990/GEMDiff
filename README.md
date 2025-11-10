@@ -46,6 +46,30 @@ The gene set list is optional. The file should contain the name and genes for a 
 GeneSet1	Gene1	Gene2	Gene3
 ```
 
+## Filtering Data by Labels (Optional)
+If your dataset contains multiple labels (e.g., "normal", "stage I", "stage II", "stage III") and you want to filter to keep only specific labels, you can use the preprocessing script. This is useful when you want to train a model on a subset of your data or create binary classification datasets.
+
+Create a config file for the preprocessing script:
+```yaml
+data_file: "data/example_train.txt"
+label_file: "data/example_train_labels.txt"
+output_data: "data/example_train_filtered.txt"
+output_labels: "data/example_train_labels_filtered.txt"
+keep_labels: ["normal", "stage I"]
+```
+
+Then run:
+```bash
+python scripts/preprocess_filter_labels.py --config configs/preprocess_config.yaml
+```
+
+The script will:
+- Filter samples to keep only those with the specified labels
+- Maintain the same file format (tab-separated)
+- Print summary statistics showing the distribution of labels in the filtered dataset
+- Create output files ready for use with the training script
+
+
 ## Preparing Config File
 The config file is in YAML format and contains four stanzas: (1) data: GEM, label, directory paths, locations, (2) model: model architecture hyperparameters, (3) diffusion: diffusion process hyperparameters, (4) train: training hyperparameters.  The default hyperparameters hard-coded in the train.py script can be overridden in the config file.  Here is an example config file.  
 ```
@@ -100,6 +124,13 @@ python scripts/train.py --config "<config file path>" --dir "<log directory path
 The perturbing process need to load from checkpoints. The default setting is to sample from the EMAs (Exponential Moving Averages), since those produce much better transformation. 
 ```
 python scripts/pertub.py --config "<config file path>" --dir "<log directory path> --model_path "<model path> --valid" 
+**Specifying source and target classes:**
+You can specify which classes to use for perturbation in the config file under the `perturb` section. This is especially useful when you have multiple classes (e.g., "normal", "stage I", "stage II") and want to control which classes are used as source and target:
+
+```yaml
+perturb:
+  source_class: "stage I"
+  target_class: "normal"
 ```
 `--gene_set` is an optional input for gene set list, defualt as "Random".
 `--valid` is to valid model with test dataset. 
