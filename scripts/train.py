@@ -67,7 +67,7 @@ def main(args):
 
     logger.info(f"Total batches: {batch_count}")
     logger.info(f"Total samples: {sample_count}")
-    assert dataset[:][0].shape[-1] == config.model.feature_size,(
+    assert train_data[:][0].shape[-1] == config.model.feature_size,(
         f"Feature size mismatch: dataset has {X.shape[-1]} features, "
         f"but config.model.feature_size = {config.model.feature_size}. "
         "Please adjust your config or preprocessing."
