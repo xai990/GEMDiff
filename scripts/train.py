@@ -72,7 +72,19 @@ def main(args):
         f"but config.model.feature_size = {config.model.feature_size}. "
         "Please adjust your config or preprocessing."
     )
-        
+    if config.model.class_cond:
+        if hasattr(train_data, "num_classes"):
+            num_classes = train_data.num_classes
+        elif hasattr(train_data, "classes"):
+            num_classes = len(train_data.classes)
+        else:
+            # fallback: compute from all labels
+            _, cond = train_data[:]
+            labels = cond["y"]
+            num_classes = int(labels.max()) + 1
+
+    logger.info(f"Detected num_classes={num_classes} from dataset")
+    config.model.num_classes = int(num_classes)    
     # Set model configuration parameters
     config.model.patch_size = config.model.feature_size
     config.model.n_embd = config.model.patch_size * 8
