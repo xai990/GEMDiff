@@ -174,74 +174,83 @@ def zero_grad(model_params):
 
 def showdata(dataset, 
             dir="results", 
-            schedule_plot = "forward", 
+            schedule_plot="forward", 
             diffusion=None,
             num_steps=1000,
             num_shows=20,
-            cols = 10,
-            synthesis_data = None,
-            n_neighbors = 15,
-            min_dist = 0.1,
-            random_state = 41,
-            gene_set = None,
+            cols=10,
+            synthesis_data=None,
+            n_neighbors=15,
+            min_dist=0.1,
+            random_state=41,
+            gene_set=None,
+            class_names=None  # NEW: Pass your class names here e.g., ['Normal', 'Tumor']
     ):
     # dir to save the plot image
-    assert isinstance(dir,str)
-    os.makedirs(dir,exist_ok=True)
+    assert isinstance(dir, str)
+    os.makedirs(dir, exist_ok=True)
     reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
     added_labels = set()
     geneset = gene_set.split("/")[-1] if gene_set else "random"
+
+    # Default labels if not provided
+    if class_names is None:
+        labels_map = ['normal', 'tumor']
+    else:
+        labels_map = class_names
+
     if schedule_plot == "forward": 
-        colors = ['blue','orange']
-        labels = ['normal','tumor']
+        # Use generic color map to handle any number of classes
+        colors = cm.get_cmap('tab10').colors
         assert diffusion is not None
         rows = num_shows // cols
-        fig,axes = plt.subplots(rows,cols,figsize=(28,3))
-        plt.rc('text',color='black')
-        data , y = dataset[:][0], dataset[:][1]['y']
+        fig, axes = plt.subplots(rows, cols, figsize=(28, 3))
+        plt.rc('text', color='black')
+        data, y = dataset[:][0], dataset[:][1]['y']
         data = th.from_numpy(data).float()
         for i in range(num_shows):
             j = i // cols
             k = i % cols
-            t = th.full((data.shape[0],),i*num_steps//num_shows)
-            x_i = diffusion.q_sample(data,t)
+            t = th.full((data.shape[0],), i * num_steps // num_shows)
+            x_i = diffusion.q_sample(data, t)
             q_i = reducer.fit_transform(x_i)
             added_labels.clear()
             for ele in y:
-                index_mask = (ele==y)
+                index_mask = (ele == y)
                 if np.any(index_mask):
-                    label = labels[ele] if ele not in added_labels else None
-                    axes[j,k].scatter(q_i[index_mask,0],
-                                q_i[index_mask,1],
-                                label = label, 
-                                color=colors[ele],
+                    # Robust label lookup
+                    label_text = labels_map[ele] if ele < len(labels_map) else f"Class {ele}"
+                    label = label_text if ele not in added_labels else None
+                    
+                    axes[j, k].scatter(q_i[index_mask, 0],
+                                q_i[index_mask, 1],
+                                label=label, 
+                                color=colors[ele % len(colors)],
                                 edgecolor='white')
                     if label:
                         added_labels.add(ele)
-            axes[j,k].set_axis_off()
-            axes[j,k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
-        handles, labels = axes[0, 0].get_legend_handles_labels()  # Get handles and labels from any one subplot
+            axes[j, k].set_axis_off()
+            axes[j, k].set_title('$q(\mathbf{x}_{'+str(i*num_steps//num_shows)+'})$')
+        handles, labels = axes[0, 0].get_legend_handles_labels() 
         fig.legend(handles, labels, loc='upper left', ncol=3)
         plt.savefig(f"{dir}/dataset-forward_{data.shape[-1]}.png")
         plt.close()
+
     elif schedule_plot == "origin":
         train_data, test_data = dataset[0], dataset[1]
-        train , train_y = train_data[:][0], train_data[:][1]['y']
-        test , test_y = test_data[:][0], test_data[:][1]['y']
-        data_merge = np.vstack([train,test])
-        # Define the range of parameters you want to explore
-        # n_neighbors_options = [15, 30, 60, 90, 120, 150, 180]
-        # min_dist_options = [0.1, 0.3, 0.6, 0.9]
-        fig,axs = plt.subplots()
-        color_map = ['blue','orange']
-        fig,ax = plt.subplots()
-        labels = ['train','test']
+        train, train_y = train_data[:][0], train_data[:][1]['y']
+        test, test_y = test_data[:][0], test_data[:][1]['y']
+        data_merge = np.vstack([train, test])
+        
+        color_map = ['blue', 'orange']
+        fig, ax = plt.subplots()
+        labels = ['train', 'test']
         x_ump = reducer.fit_transform(data_merge)
         q_i = x_ump[:len(train)]
         q_x = x_ump[len(train):]
-        ax.scatter(q_i[:,0],q_i[:,1],color = color_map[0],edgecolor='white',label=labels[0])
-        ax.scatter(q_x[:,0],q_x[:,1],color = color_map[1],edgecolor='white',label=labels[1])
-        # plt.legend(loc="upper left")
+        ax.scatter(q_i[:, 0], q_i[:, 1], color=color_map[0], edgecolor='white', label=labels[0])
+        ax.scatter(q_x[:, 0], q_x[:, 1], color=color_map[1], edgecolor='white', label=labels[1])
+        
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
         plt.legend(loc="upper right")
@@ -249,28 +258,34 @@ def showdata(dataset,
         plt.subplots_adjust(wspace=0., hspace=0.)
         plt.savefig(f"{dir}/dataset_{train.shape[-1]}.png")
         plt.close()
+
     elif schedule_plot == "stage":
-        # logger.debug(f"The dataset is : {dataset[:][1]} -- script_util") 
-        fig,axs = plt.subplots()
-        data,y_r = dataset[:][0],dataset[:][1]['y']
-        # logger.debug(f"The labels info is:{y_r}")
-        labels = dataset.show_classes()
+        fig, axs = plt.subplots()
+        data, y_r = dataset[:][0], dataset[:][1]['y']
+        
+        # If class_names provided, use them; otherwise try dataset method
+        if class_names:
+            labels = class_names
+        else:
+            labels = dataset.show_classes()
+
         x_ump = reducer.fit_transform(data)
         q_i = x_ump
         score = silhouette_score(q_i, y_r)
         added_labels = set()
-        # Plot
+        
         for ele in y_r:
-            index_mask = (ele==y_r)
+            index_mask = (ele == y_r)
             if np.any(index_mask):
-                label = labels[ele] if labels[ele] not in added_labels else None
-                axs.scatter(q_i[index_mask,0],
-                            q_i[index_mask,1],
-                            label = label, 
-                            color=cm.get_cmap('tab10').colors[ele],
+                current_label = labels[ele] if ele < len(labels) else str(ele)
+                label = current_label if current_label not in added_labels else None
+                axs.scatter(q_i[index_mask, 0],
+                            q_i[index_mask, 1],
+                            label=label, 
+                            color=cm.get_cmap('tab10').colors[ele % 10],
                             edgecolor='white')
                 if label:
-                    added_labels.add(label)
+                    added_labels.add(current_label)
         
         axs.axes.xaxis.set_ticklabels([])
         axs.axes.yaxis.set_ticklabels([])
@@ -279,162 +294,110 @@ def showdata(dataset,
         plt.tight_layout()
         plt.subplots_adjust(wspace=0., hspace=0.)
         plt.legend(loc="upper right")
-        fig.text(0.1, 0.1, f"The score is:{score:.2f}", fontsize=12, color='red',ha='left', va='bottom')
+        fig.text(0.1, 0.1, f"The score is:{score:.2f}", fontsize=12, color='red', ha='left', va='bottom')
         plt.savefig(f"{dir}/StageUMAP_{data.shape[-1]}.png")
         plt.close()
        
-       
     elif schedule_plot == "reverse":
-        data_r , y_r = dataset[:][0], dataset[:][1]['y']
+        data_r, y_r = dataset[:][0], dataset[:][1]['y']
         data_f, y_f = synthesis_data["arr_0"], synthesis_data["arr_1"]
-        # stack the data together for overarching patterns 
-        mmd = maximum_mean_discrepancy (data_r, data_f)
+        
+        mmd = maximum_mean_discrepancy(data_r, data_f)
         logger.info(f"The mmd score is:{mmd}")
-        data_merged = np.vstack([data_r,data_f])
-        fig,ax = plt.subplots()
-        color_map = ['blue','orange','cyan','blueviolet']
-        labels = ['real_normal','real_tumor','fake_normal', 'fake_turmor']
+        data_merged = np.vstack([data_r, data_f])
+        fig, ax = plt.subplots()
+        
+        # Dynamic label creation for Real vs Fake
+        # Assumes y_r and y_f indices match the class_names list
+        colors = cm.get_cmap('tab10').colors
         
         q_i = reducer.fit_transform(data_merged)
         q_r = q_i[:len(y_r)]
         q_f = q_i[len(y_r):]
-        # Plot
-        for ele in y_r:
-            index_mask = (ele==y_r)
+        
+        # Plot Real Data
+        for ele in np.unique(y_r):
+            index_mask = (ele == y_r)
             if np.any(index_mask):
-                label = labels[ele] if labels[ele] not in added_labels else None
-                ax.scatter(q_r[index_mask,0],
-                            q_r[index_mask,1],
-                            label = label, 
-                            color=color_map[ele],
+                c_name = labels_map[ele] if ele < len(labels_map) else str(ele)
+                label_text = f"Real {c_name}"
+                label = label_text if label_text not in added_labels else None
+                
+                ax.scatter(q_r[index_mask, 0],
+                            q_r[index_mask, 1],
+                            label=label, 
+                            color=colors[ele % len(colors)],
                             edgecolor='white')
                 if label:
-                    added_labels.add(label)
-        for ele in y_f:
-            index_mask = (ele==y_f)
+                    added_labels.add(label_text)
+
+        # Plot Fake Data
+        for ele in np.unique(y_f):
+            index_mask = (ele == y_f)
             if np.any(index_mask):
-                label = labels[ele+2] if labels[ele+2] not in added_labels else None
-                ax.scatter(q_f[index_mask,0],
-                            q_f[index_mask,1],
-                            label = label, 
-                            color=color_map[ele+2],
+                c_name = labels_map[ele] if ele < len(labels_map) else str(ele)
+                label_text = f"Fake {c_name}"
+                label = label_text if label_text not in added_labels else None
+                
+                # Use a slightly different color or marker style for fake could be better, 
+                # but following original style: offset color index or use alpha
+                # Original logic: color_map[ele+2]. Here we rotate colors.
+                color_idx = (ele + 2) % len(colors) 
+                
+                ax.scatter(q_f[index_mask, 0],
+                            q_f[index_mask, 1],
+                            label=label, 
+                            color=colors[color_idx],
                             edgecolor='white',
                             alpha=0.5)
                 if label:
-                    added_labels.add(label)
+                    added_labels.add(label_text)
+
         ax.axes.xaxis.set_ticklabels([])
         ax.axes.yaxis.set_ticklabels([])
-        """
-        # Setup the subplot grid
-        fig, axes = plt.subplots(nrows=len(n_neighbors_options), ncols=len(min_dist_options), figsize=(15, 15))
-        for i, n_neighbors in enumerate(n_neighbors_options):
-            for j, min_dist in enumerate(min_dist_options):
-                # Create UMAP model
-                reducer = umap.UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=41)
-                q_i = reducer.fit_transform(data_merged)
-                q_r = q_i[:len(y_r)]
-                q_f = q_i[len(y_r):]
-                # Plot
-                ax = axes[i, j]  # Get a specific subplot axis
-                added_labels.clear()
-                for ele in y_r:
-                    index_mask = (ele==y_r)
-                    if np.any(index_mask):
-                        label = labels[ele] if labels[ele] not in added_labels else None
-                        ax.scatter(q_r[index_mask,0],
-                                    q_r[index_mask,1],
-                                    label = label, 
-                                    color=color_map[ele],
-                                    edgecolor='white')
-                        if label:
-                            added_labels.add(label)
-
-                for ele in y_f:
-                    index_mask = (ele==y_f)
-                    if np.any(index_mask):
-                        label = labels[ele+2] if labels[ele+2] not in added_labels else None
-                        ax.scatter(q_f[index_mask,0],
-                                    q_f[index_mask,1],
-                                    label = label, 
-                                    color=color_map[ele+2],
-                                    edgecolor='white')
-                        if label:
-                            added_labels.add(label)
-
-                # scatter = ax.scatter(embedding[:, 0], embedding[:, 1], c=y, cmap='viridis', s=5)
-                # ax.set_title(f'n_neighbors={n_neighbors}, min_dist={min_dist}')
-                if i == 0:
-                    ax.set_xlabel(f'{min_dist}')
-                    ax.xaxis.set_label_position('top')
-                if j == 0:
-                    ax.set_ylabel(f'{n_neighbors}')
-                ax.axes.xaxis.set_ticklabels([])
-                ax.axes.yaxis.set_ticklabels([])
-                # ax.axis('off')
-        """
-        # handles, labels = axes[0, 0].get_legend_handles_labels()
-        # handles, labels = ax.get_legend_handles_labels()
-        # fig.legend(handles, labels, loc='upper left', ncol=3)
-        # fig.text(0.5, 1,'min_dist',ha='center',)
-        # fig.text(0.0, 0.5,'n_neighbors', va='center', rotation='vertical')
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
         plt.tight_layout()
         plt.subplots_adjust(wspace=0., hspace=0.)
-        # plt.show()
         plt.legend(loc="upper right")
         plt.savefig(f"{dir}/UMAP_plot_realvsfake_{data_r.shape[-1]}.png")
         plt.close()
-        """
-        # Create a Plotly figure
-        fig = go.Figure()
-        # plot the synthesis data
-        for ele in np.unique(y_f):
-            index_mask = (ele==y_f)
-            if np.any(index_mask):
-                # Add the first scatter plot to the figure
-                label = f'Synthesis {ele}'
-                fig.add_trace(go.Scatter(x=q_f[index_mask,0], y=q_f[index_mask,1],
-                                        mode='markers', 
-                                        name=label,textposition='top center')
-                                        )
 
-        # Add the original data scatter plot to the figure
-        for ele in np.unique(y_r):
-            index_mask = (ele==y_r)
-            if np.any(index_mask):
-                label = f'Real {ele}'
-                fig.add_trace(go.Scatter(x=q_r[index_mask,0], y=q_r[index_mask,1],
-                                        mode='markers', 
-                                        name=label,textposition='top center')
-                                        )
-                        
-
-        # Update the layout
-        fig.update_layout(title='UMAP Plots with Real mRNA data and synthetic mRNA data',
-                        xaxis_title='X Axis',
-                        yaxis_title='Y Axis',
-                        legend_title='Datasets')
-
-        # Show the figure
-        fig.write_html(f"{dir}/UMAP_plot_realvsfake_{data_r.shape[-1]}.html")
-        """
     elif schedule_plot == "perturb":
+        # dataset_N = Target/Reference Data
+        # dataset_T = Source/Original Data
+        # target = Perturbed Data (Source transformed to look like Target)
         dataset_N, dataset_T, target = dataset 
-        mmd = maximum_mean_discrepancy (dataset_N, target)
+        mmd = maximum_mean_discrepancy(dataset_N, target)
         logger.info(f"The mmd score is:{mmd}")
-        x_merged = np.vstack([dataset_N,dataset_T, target])
+        
+        # Determine labels dynamically
+        # Assuming class_names passed as [Target_Class_Name, Source_Class_Name]
+        target_name = labels_map[0] if len(labels_map) > 0 else "Normal"
+        source_name = labels_map[1] if len(labels_map) > 1 else "Tumor"
+        
+        x_merged = np.vstack([dataset_N, dataset_T, target])
         x_ump = reducer.fit_transform(x_merged)
-        q_n = x_ump[:len(dataset_N)]
-        q_t = x_ump[len(dataset_N):(len(dataset_N)+len(dataset_T))]
-        q_x = x_ump[(len(dataset_N)+len(dataset_T)):]
-        fig,ax = plt.subplots()      
-        ax.scatter(q_n[:,0],q_n[:,1],color = 'blue',edgecolor='white',label="real normal")
-        ax.scatter(q_t[:,0],q_t[:,1],color = 'orange',edgecolor='white',label="real tumor")
-        ax.scatter(q_x[:,0],q_x[:,1],color = 'cyan',edgecolor='white',label="perturb tumor")
+        
+        len_n = len(dataset_N)
+        len_t = len(dataset_T)
+        
+        q_n = x_ump[:len_n] # Real Target
+        q_t = x_ump[len_n : len_n + len_t] # Real Source
+        q_x = x_ump[len_n + len_t:] # Perturbed Source
+        
+        fig, ax = plt.subplots()      
+        
+        # Plot 1: Real Target (Reference)
+        ax.scatter(q_n[:, 0], q_n[:, 1], color='blue', edgecolor='white', label=f"Real {target_name}")
+        
+        # Plot 2: Real Source (Original)
+        ax.scatter(q_t[:, 0], q_t[:, 1], color='orange', edgecolor='white', label=f"Real {source_name}")
+        
+        # Plot 3: Perturbed (Transformed)
+        ax.scatter(q_x[:, 0], q_x[:, 1], color='cyan', edgecolor='white', label=f"Perturbed {source_name}")
+        
         plt.legend(loc="upper right")
-        # plt.title("Perturb tumor mRNA expression back to normal with Diffusion model")
-        # ax.axis('off')
         ax.axes.xaxis.set_ticklabels([])
         ax.axes.yaxis.set_ticklabels([])
         plt.xlabel('UMAP 1')
@@ -444,6 +407,7 @@ def showdata(dataset,
 
     else:
         raise NotImplementedError(f"unknown schedule plot:{schedule_plot}")
+
 
 
 
@@ -556,4 +520,6 @@ def maximum_mean_discrepancy(X, Y, kernel_function='rbf', gamma=None):
     mmd = np.mean(K_XX) - 2 * np.mean(K_XY) + np.mean(K_YY)
     
     return mmd
+
+
 

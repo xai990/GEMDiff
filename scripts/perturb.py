@@ -120,8 +120,14 @@ def main(args):
     logger.log("visulize the perturbed data and real data")
     
     plotdata = [test_N, test_T, target] if args.valid else [train_N, train_T, target]
-    showdata(plotdata,dir = get_blob_logdir(), schedule_plot = "perturb", n_neighbors =config.umap.n_neighbors,min_dist=config.umap.min_dist)
-    
+    showdata(
+        plotdata,
+        dir=get_blob_logdir(),
+        schedule_plot="perturb",
+        n_neighbors=config.umap.n_neighbors,
+        min_dist=config.umap.min_dist,
+        class_names=[target_class, source_class] 
+    )
     logger.log("filter the perturbed gene -- 1 std")
     gene_index = filter_gene(test_T if args.valid else train_T, target, config.data.corerate)
     if args.valid:
@@ -153,8 +159,8 @@ def create_config():
             "schedule_sampler":"uniform",
         },
         "perturb":{
-            "source_class": "tumor",
-            "target_class": "normal",
+            "source_class": "Stage_I",
+            "target_class": "normal_TCGA",
         },
         "umap":{
             "n_neighbors":90,
